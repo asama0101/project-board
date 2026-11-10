@@ -146,7 +146,7 @@ const compareVersion = (a, b) => {
 
 /** 今の版を示し、GitHub がマーケットプレイスとして登録されていれば、最新の版かも確かめる（任意） */
 async function checkVersion(readPlugin, readMarketplace, latest) {
-  const name = "版";
+  const name = "プラグインのバージョン";
   const { version, repository } = readPlugin();
   const repo = repository?.match(/github\.com\/([^/]+\/[^/.]+)/)?.[1];
   const market = Object.entries(readMarketplace()).find(([, m]) => m.source?.source === "github" && m.source.repo === repo)?.[0];
@@ -190,7 +190,7 @@ export async function runChecks({
     await guard("祝日一覧への接続（内閣府）", "opt", () => checkHolidays(holidays)),
     await guard("Excel の読み取り（Python・pip・openpyxl）", "opt", () => checkExcel(dir, run, exists)),
     await guard("予定表の MCP の指定", "opt", () => checkMcp(dir, readMcp)),
-    await guard("版", "info", () => checkVersion(readPlugin, readMarketplace, latest)),
+    await guard("プラグインのバージョン", "info", () => checkVersion(readPlugin, readMarketplace, latest)),
   ];
 }
 
@@ -198,14 +198,12 @@ const LABEL = { ok: "[OK]", ng: "[NG]", opt: "[任意]", info: "[情報]" };
 
 /** 表示する行と終了コード。必須（ok・ng）が 1 つでも ng なら 3 */
 export function render(items) {
-  const lines = ["project-board 動作環境の診断（何も変更しません）", ""];
+  const lines = [];
   for (const i of items) {
     lines.push(`${LABEL[i.level]} ${i.name}: ${i.detail}`);
     for (const f of i.fix) lines.push(`  → ${f}`);
   }
   const ng = items.filter((i) => i.level === "ng").length;
-  const opt = items.filter((i) => i.level === "opt").length;
-  lines.push("", ng ? `結果: [NG] の必須項目が ${ng} 件あります。上の「→」の順に進めてください。` : "結果: 必須の項目はすべて満たしています。" + (opt ? `任意の項目が ${opt} 件、未対応です（使うときだけ対処してください）。` : ""));
   return { lines, exitCode: ng ? 3 : 0 };
 }
 
