@@ -50,7 +50,7 @@ const runAsync = (args, env = {}) => new Promise((resolve) => {
 test("update: 一覧を取得して settings.nationalHolidays に書く。他の設定を保ち、検証に通る", async () => {
   const w = work({ waitingLongDays: 5 });
   const s = await serve(200, CSV_SJIS);
-  const r = await runAsync(["update", w.data], { PJ_LENS_HOLIDAYS_URL: s.url });
+  const r = await runAsync(["update", w.data], { PROJECT_BOARD_HOLIDAYS_URL: s.url });
   await s.close();
   assert.equal(r.status, 0, r.err);
   const d = w.json();
@@ -67,7 +67,7 @@ test("update: HTTP エラー・不正な本文・接続できないときは、�
     const w = work();
     const before = w.text();
     const s = await serve(status, body);
-    const r = await runAsync(["update", w.data], { PJ_LENS_HOLIDAYS_URL: s.url });
+    const r = await runAsync(["update", w.data], { PROJECT_BOARD_HOLIDAYS_URL: s.url });
     await s.close();
     assert.equal(r.status, 1, `${status} ${body}: ${r.err}`);
     assert.ok(r.err.length > 0);
@@ -78,7 +78,7 @@ test("update: HTTP エラー・不正な本文・接続できないときは、�
   const s = await serve(200, CSV_SJIS);
   const url = s.url;
   await s.close(); // 閉じたポートへ
-  const r = await runAsync(["update", w.data], { PJ_LENS_HOLIDAYS_URL: url });
+  const r = await runAsync(["update", w.data], { PROJECT_BOARD_HOLIDAYS_URL: url });
   assert.equal(r.status, 1, r.err);
   assert.equal(w.text(), before);
 });
@@ -89,7 +89,7 @@ test("status: 未取得と取得後（取得日・件数・範囲・経過日数
   assert.equal(none.status, 0, none.err);
   assert.deepEqual(none.out, { fetched: false });
   const s = await serve(200, CSV_SJIS);
-  await runAsync(["update", w.data], { PJ_LENS_HOLIDAYS_URL: s.url });
+  await runAsync(["update", w.data], { PROJECT_BOARD_HOLIDAYS_URL: s.url });
   await s.close();
   const st = await runAsync(["status", w.data]);
   assert.equal(st.out.fetched, true);
@@ -114,7 +114,7 @@ test("update: 接続できないときの理由は日本語（接続できなか
   const s = await serve(200, CSV_SJIS);
   const url = s.url;
   await s.close();
-  const r = await runAsync(["update", w.data], { PJ_LENS_HOLIDAYS_URL: url });
+  const r = await runAsync(["update", w.data], { PROJECT_BOARD_HOLIDAYS_URL: url });
   assert.equal(r.status, 1);
   assert.match(r.err, /接続できませんでした/);
 });
@@ -139,12 +139,12 @@ test("needsHolidayUpdate: 今日取得したものは、最終日が今日以前
 test("ensure: 条件に当てはまらないときは取得せず {fetched:false}。当てはまるときは取得して保存し {fetched:true,reason}", async () => {
   const fresh = work(nat(5));
   const before = fresh.text();
-  const none = await runAsync(["ensure", fresh.data], { PJ_LENS_HOLIDAYS_URL: "http://127.0.0.1:1/x.csv" });
+  const none = await runAsync(["ensure", fresh.data], { PROJECT_BOARD_HOLIDAYS_URL: "http://127.0.0.1:1/x.csv" });
   assert.deepEqual([none.status, none.out], [0, { fetched: false, reason: null }]);
   assert.equal(fresh.text(), before);
   const old = work(nat(40));
   const s = await serve(200, CSV_SJIS);
-  const got = await runAsync(["ensure", old.data], { PJ_LENS_HOLIDAYS_URL: s.url });
+  const got = await runAsync(["ensure", old.data], { PROJECT_BOARD_HOLIDAYS_URL: s.url });
   await s.close();
   assert.equal(got.status, 0, got.err);
   assert.deepEqual([got.out.fetched, got.out.reason], [true, "30日超"]);
@@ -155,7 +155,7 @@ test("ensure: 条件に当てはまらないときは取得せず {fetched:false
 test("ensure: 取得に失敗すると終了コード 1 で、data.json は変わらない", async () => {
   const w = work();
   const before = w.text();
-  const r = await runAsync(["ensure", w.data], { PJ_LENS_HOLIDAYS_URL: "http://127.0.0.1:1/x.csv" });
+  const r = await runAsync(["ensure", w.data], { PROJECT_BOARD_HOLIDAYS_URL: "http://127.0.0.1:1/x.csv" });
   assert.equal(r.status, 1);
   assert.ok(r.err.length > 0);
   assert.equal(w.text(), before);
@@ -168,7 +168,7 @@ test("needsHolidayUpdate・ensure: 土日祝を営業日に数える設定がオ
   const w = work({ countWeekendsAndHolidays: true });
   const before = w.text();
   const s = await serve(200, CSV_SJIS);
-  const r = await runAsync(["ensure", w.data], { PJ_LENS_HOLIDAYS_URL: s.url });
+  const r = await runAsync(["ensure", w.data], { PROJECT_BOARD_HOLIDAYS_URL: s.url });
   await s.close();
   assert.equal(r.status, 0, r.err);
   assert.deepEqual(r.out, { fetched: false, reason: null });

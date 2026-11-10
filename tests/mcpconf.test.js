@@ -75,7 +75,7 @@ test("setMcpRole: savedAt を足す。不正は例外", () => {
 import { writeFileSync, mkdirSync, readdirSync } from "node:fs";
 import { SCHEMA_VERSION } from "../plugins/project-board/src/import/mcpconf.js";
 
-const cliEnv = (env, ...args) => spawnSync(process.execPath, [join(REPO, "tools/mcpconf.js"), ...args], { encoding: "utf8", env: { ...process.env, PJ_LENS_HOME: "", ...env } });
+const cliEnv = (env, ...args) => spawnSync(process.execPath, [join(REPO, "tools/mcpconf.js"), ...args], { encoding: "utf8", env: { ...process.env, PROJECT_BOARD_HOME: "", ...env } });
 
 test("schema_version: 保存すると現在の版(1)が先頭に入り、validate・show の対象の役割には数えない", () => {
   const d = dir();
@@ -107,16 +107,16 @@ test("schema_version: 未対応の版は読まずに止まる", () => {
   assert.equal(cli(d, "show").status, 1);
 });
 
-test("置き場: PJ_LENS_HOME が最優先、次に --data。どちらも無ければ終了コード 2（位置引数では渡せない）", () => {
+test("置き場: PROJECT_BOARD_HOME が最優先、次に --data。どちらも無ければ終了コード 2（位置引数では渡せない）", () => {
   const env = dir("env"), arg = dir("arg");
-  assert.equal(cliEnv({ PJ_LENS_HOME: env }, "--data", arg, "set", ...CAL).status, 0);
+  assert.equal(cliEnv({ PROJECT_BOARD_HOME: env }, "--data", arg, "set", ...CAL).status, 0);
   assert.equal(existsSync(join(env, "project-board-mcp.json")), true);
   assert.equal(existsSync(arg), false, "--data の置き場には書かない");
   assert.equal(cliEnv({}, "--data", arg, "set", ...CAL).status, 0);
   assert.equal(existsSync(join(arg, "project-board-mcp.json")), true);
   assert.equal(cliEnv({}, "show").status, 2);
   assert.equal(cliEnv({}, arg, "show").status, 2, "位置引数は受け付けない");
-  assert.equal(cliEnv({ PJ_LENS_HOME: env }, "show").status, 0, "環境変数だけでも動く");
+  assert.equal(cliEnv({ PROJECT_BOARD_HOME: env }, "show").status, 0, "環境変数だけでも動く");
 });
 
 // ---- 任意の項目（selfEmails・roomKeywords） ----

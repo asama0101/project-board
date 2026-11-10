@@ -1,8 +1,8 @@
 // 使い方: node tools/doctor.js [--data <置き場>]
 // 動作環境の診断のみ（何も変更しない）。別の PC で使い始めるときに、足りないものと対処を表示する。
-// 置き場は、環境変数 PJ_LENS_HOME が最優先、次に --data（${CLAUDE_PLUGIN_DATA}）。どちらもなければ「保存先」が要対処になる。
+// 置き場は、環境変数 PROJECT_BOARD_HOME が最優先、次に --data（${CLAUDE_PLUGIN_DATA}）。どちらもなければ「保存先」が要対処になる。
 // 確認する項目: Node.js 24 以上・保存先（以上は必須）、project-board の版・祝日一覧への接続・Excel の読み取り（Python・pip・openpyxl）・予定表の MCP（以上は任意）。
-// 版は、今の plugin.json の版を示し、GitHub が known_marketplaces.json に登録されていれば、GitHub の最新の版と比べる（環境変数 PJ_LENS_LATEST_URL で取得先を変えられる。テスト用）。
+// 版は、今の plugin.json の版を示し、GitHub が known_marketplaces.json に登録されていれば、GitHub の最新の版と比べる（環境変数 PROJECT_BOARD_LATEST_URL で取得先を変えられる。テスト用）。
 // 祝日一覧と最新の版へは接続を試すだけで、data.json は変えない。Excel の判定は xlsx.js の診断を使う。
 // 終了コード 0: 必須の項目がすべて満たされている / 3: 必須の項目に要対処がある（任意の項目だけが足りないときは 0）。
 import { existsSync, accessSync, statSync, readFileSync, constants } from "node:fs";
@@ -50,7 +50,7 @@ function checkNode(version) {
 function checkHome(dir, canWrite) {
   const name = "保存先";
   if (!dir) return item(name, "ng", "決まっていません", [
-    "環境変数 PJ_LENS_HOME に保存先のフォルダを設定する、または --data \"<保存先>\" を付けて実行する",
+    "環境変数 PROJECT_BOARD_HOME に保存先のフォルダを設定する、または --data \"<保存先>\" を付けて実行する",
     "Claude Code の中では、/project-board:doctor が保存先を自動で渡す",
   ]);
   if (dir.includes("${")) return item(name, "ng", `${dir}（変数が展開されていません）`, ["保存先の指定に、展開されていない ${…} が残っている。実際のフォルダのパスで指定し直す"]);
@@ -123,7 +123,7 @@ function readMarketplaces() {
 
 /** GitHub の既定ブランチにある plugin.json の version。失敗は例外 */
 async function fetchLatestVersion(repo) {
-  const url = process.env.PJ_LENS_LATEST_URL || `https://raw.githubusercontent.com/${repo}/HEAD/plugins/project-board/.claude-plugin/plugin.json`;
+  const url = process.env.PROJECT_BOARD_LATEST_URL || `https://raw.githubusercontent.com/${repo}/HEAD/plugins/project-board/.claude-plugin/plugin.json`;
   const res = await fetch(url, { signal: AbortSignal.timeout(15000) }).catch((e) => {
     throw new Error(e.name === "TimeoutError" ? "タイムアウトしました（15 秒）" : `接続できませんでした（${e.cause?.code ?? e.message}）`);
   });

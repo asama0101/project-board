@@ -59,11 +59,11 @@ test("Node.js が 24 未満: 要対処。入れ方と確認の手順を出し、
   assert.equal(render(items).exitCode, 3);
 });
 
-test("保存先が決まらない: 要対処。PJ_LENS_HOME か --data の指定を案内する。Excel と予定表は確認できない（任意）", async () => {
+test("保存先が決まらない: 要対処。PROJECT_BOARD_HOME か --data の指定を案内する。Excel と予定表は確認できない（任意）", async () => {
   const items = await runChecks({ ...base(), dir: null });
   const h = find(items, "保存先");
   assert.equal(h.level, "ng");
-  assert.match(h.fix.join("\n"), /PJ_LENS_HOME/);
+  assert.match(h.fix.join("\n"), /PROJECT_BOARD_HOME/);
   assert.equal(find(items, "Excel").level, "opt");
   assert.equal(find(items, "予定表").level, "opt");
 });
@@ -238,7 +238,7 @@ test("render: 状態の見出し([OK]・[要対処]・[任意])と、対処の�
   assert.match(text, /^\s+→ /m);
 });
 
-const cliEnv = { ...process.env, CLAUDE_CONFIG_DIR: mkdtempSync(join(tmpdir(), "project-board-cfg-")), PJ_LENS_HOME: "", PJ_LENS_HOLIDAYS_URL: "http://127.0.0.1:1/x.csv" };
+const cliEnv = { ...process.env, CLAUDE_CONFIG_DIR: mkdtempSync(join(tmpdir(), "project-board-cfg-")), PROJECT_BOARD_HOME: "", PROJECT_BOARD_HOLIDAYS_URL: "http://127.0.0.1:1/x.csv" };
 
 test("CLI: 必須が足りなければ診断だけして終了コード 3。祝日の取得先に届かないことは、任意の項目", () => {
   const r = spawnSync(process.execPath, [DOCTOR, "--data", "Z:\\no\\such\\dir"], { encoding: "utf8", env: cliEnv });

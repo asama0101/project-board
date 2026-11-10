@@ -140,7 +140,7 @@ test("引数が足りないと終了コード2と使い方を出す", () => {
 
 // ---- 自分だけ・自分と会議室だけの予定を除く（設定は project-board-mcp.json から読む） ----
 const runEnv = (env, ...args) => {
-  const r = spawnSync(process.execPath, [join(REPO, "tools/intake.js"), ...args], { encoding: "utf8", env: { ...process.env, PJ_LENS_HOME: "", ...env } });
+  const r = spawnSync(process.execPath, [join(REPO, "tools/intake.js"), ...args], { encoding: "utf8", env: { ...process.env, PROJECT_BOARD_HOME: "", ...env } });
   let out = null;
   try { out = JSON.parse(r.stdout); } catch { /* 出力が JSON でないこともある */ }
   return { status: r.status, out, err: r.stderr };
@@ -158,19 +158,19 @@ const homeWith = (cal) => {
   return home;
 };
 
-test("calendar-plan・calendar-apply: 設定の selfEmails（PJ_LENS_HOME か --data の置き場）で、自分だけ・自分と会議室だけの予定を取り込まず、excluded に出す。plan は書かない", () => {
+test("calendar-plan・calendar-apply: 設定の selfEmails（PROJECT_BOARD_HOME か --data の置き場）で、自分だけ・自分と会議室だけの予定を取り込まず、excluded に出す。plan は書かない", () => {
   const w = work();
   const fetched = w.put("fetched.json", fetchedSolo());
   const home = homeWith({ selfEmails: [SELF] });
   const before = w.read();
-  for (const env of [{ PJ_LENS_HOME: home }, {}]) {
-    const args = env.PJ_LENS_HOME ? [] : ["--data", home];
+  for (const env of [{ PROJECT_BOARD_HOME: home }, {}]) {
+    const args = env.PROJECT_BOARD_HOME ? [] : ["--data", home];
     const p = runEnv(env, "calendar-plan", w.data, fetched, "2026-10-19", "2026-10-25", ...args);
     assert.equal(p.status, 0, p.err);
     assert.deepEqual([p.out.added.map((e) => e.externalId), p.out.excluded.map((e) => e.externalId), p.out.warnings], [["mtg1"], ["solo1", "solo2"], []]);
     assert.equal(w.read(), before);
   }
-  const a = runEnv({ PJ_LENS_HOME: home }, "calendar-apply", w.data, fetched, "2026-10-19", "2026-10-25");
+  const a = runEnv({ PROJECT_BOARD_HOME: home }, "calendar-apply", w.data, fetched, "2026-10-19", "2026-10-25");
   assert.equal(a.status, 0, a.err);
   assert.deepEqual([a.out.summary.added, a.out.summary.excluded], [1, 2]);
   assert.deepEqual(w.json().events.filter((e) => e.source === "mcp" && e.externalId.startsWith("solo")), []);
@@ -179,7 +179,7 @@ test("calendar-plan・calendar-apply: 設定の selfEmails（PJ_LENS_HOME か --
 test("calendar-plan: 設定の selfNames だけ（selfEmails なし）でも、名前が一致する自分だけの予定を除く", () => {
   const w = work();
   const fetched = w.put("fetched.json", fetchedSolo());
-  const p = runEnv({ PJ_LENS_HOME: homeWith({ selfNames: ["me"] }) }, "calendar-plan", w.data, fetched, "2026-10-19", "2026-10-25");
+  const p = runEnv({ PROJECT_BOARD_HOME: homeWith({ selfNames: ["me"] }) }, "calendar-plan", w.data, fetched, "2026-10-19", "2026-10-25");
   assert.equal(p.status, 0, p.err);
   assert.deepEqual([p.out.added.map((e) => e.externalId), p.out.excluded.map((e) => e.externalId), p.out.warnings], [["mtg1"], ["solo1", "solo2"], []]);
 });
@@ -187,7 +187,7 @@ test("calendar-plan: 設定の selfNames だけ（selfEmails なし）でも、�
 test("calendar-plan: 設定がない（置き場がない・selfEmails が未設定）ときは、何も除かず、warnings に出す", () => {
   const w = work();
   const fetched = w.put("fetched.json", fetchedSolo());
-  for (const env of [{}, { PJ_LENS_HOME: homeWith({}) }]) {
+  for (const env of [{}, { PROJECT_BOARD_HOME: homeWith({}) }]) {
     const p = runEnv(env, "calendar-plan", w.data, fetched, "2026-10-19", "2026-10-25");
     assert.equal(p.status, 0, p.err);
     assert.deepEqual([p.out.added.length, p.out.excluded.length], [3, 0]);
@@ -198,7 +198,7 @@ test("calendar-plan: 設定がない（置き場がない・selfEmails が未設
 test("calendar-plan: excluded には、参加者（メールアドレス）を含めず、externalId・件名・日時だけを出す", () => {
   const w = work();
   const fetched = w.put("fetched.json", fetchedSolo());
-  const p = runEnv({ PJ_LENS_HOME: homeWith({ selfEmails: [SELF] }) }, "calendar-plan", w.data, fetched, "2026-10-19", "2026-10-25");
+  const p = runEnv({ PROJECT_BOARD_HOME: homeWith({ selfEmails: [SELF] }) }, "calendar-plan", w.data, fetched, "2026-10-19", "2026-10-25");
   assert.equal(p.status, 0, p.err);
   assert.deepEqual(p.out.excluded[0], { externalId: "solo1", title: "作業ブロック", date: "2026-10-22", start: "09:00", end: "10:00" });
   assert.ok(!JSON.stringify(p.out.excluded).includes("example.com"));
@@ -208,7 +208,7 @@ test("calendar-plan・calendar-apply: 設定ファイルの指定が正しくな
   const w = work();
   const fetched = w.put("fetched.json", fetchedSolo());
   const before = w.read();
-  const env = { PJ_LENS_HOME: homeWith({ selfEmails: SELF }) };
+  const env = { PROJECT_BOARD_HOME: homeWith({ selfEmails: SELF }) };
   for (const cmd of ["calendar-plan", "calendar-apply"]) {
     const r = runEnv(env, cmd, w.data, fetched, "2026-10-19", "2026-10-25");
     assert.equal(r.status, 1);
@@ -225,7 +225,7 @@ test("calendar-plan: 取り込み済みの会議が対象外になって削除�
   d.events.push({ id: "m92", date: "2026-10-23", start: "10:00", end: "11:00", title: "予定表から消えた会議", source: "mcp", skip: false, externalId: "gone" });
   writeFileSync(w.data, JSON.stringify(d));
   const fetched = w.put("fetched.json", fetchedSolo());
-  const p = runEnv({ PJ_LENS_HOME: homeWith({ selfEmails: [SELF] }) }, "calendar-plan", w.data, fetched, "2026-10-19", "2026-10-25");
+  const p = runEnv({ PROJECT_BOARD_HOME: homeWith({ selfEmails: [SELF] }) }, "calendar-plan", w.data, fetched, "2026-10-19", "2026-10-25");
   assert.equal(p.status, 0, p.err);
   assert.deepEqual(p.out.removedByExclusion, [
     { id: "m90", title: "作業ブロック", date: "2026-10-22", confirmed: true },
