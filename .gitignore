@@ -13,11 +13,3 @@ desktop.ini
 .vscode/
 .idea/
 *.log
-
-# 開発者向け文書（ローカルのみ。development.md）。docs/images/ と docs/flow.html だけ共有する
-docs/*
-!docs/images/
-!docs/flow.html
-
-# Claude Code 向けのプロジェクト指示（ローカルのみ）
-CLAUDE.md
