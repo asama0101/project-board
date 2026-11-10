@@ -600,11 +600,11 @@
   <div class="n">1</div>
   <div class="cell u"><code>/project-board:doctor</code> を実行する。<small class="src">skills/doctor/SKILL.md</small></div>
   <div class="cell c">診断のスクリプトを実行する（この指示は Claude が自分の判断で呼ぶことはできず、あなたのコマンドでだけ動く）。<small class="src">skills/doctor/SKILL.md（disable-model-invocation）</small></div>
-  <div class="cell s">6 項目を順に確認する。必須: Node.js 24 以上／保存先（フォルダで、書き込める）。任意: project-board の版（GitHub をマーケットプレイスに登録しているときは、GitHub の最新の版と比べる）／祝日一覧（内閣府）に届く／Excel の読み取り（Python・pip・openpyxl）／予定表の MCP の指定。祝日一覧へは接続を試すだけで、<code>data.json</code> は読まず、書かない。<small class="src">tools/doctor.js runChecks()</small></div>
+  <div class="cell s">7 項目を順に確認する。必須: OS（Windows）／実行環境（Node.js 24 以上）／保存先（フォルダで、書き込める）。任意: 祝日一覧（内閣府）に届く／Excel の読み取り（Python・pip・openpyxl）／予定表の MCP の指定。情報: 版（GitHub をマーケットプレイスに登録しているときは、GitHub の最新の版と比べる）。祝日一覧へは接続を試すだけで、<code>data.json</code> は読まず、書かない。<small class="src">tools/doctor.js runChecks()</small></div>
 
   <div class="branch"><p class="bt">実行の入口</p><div class="flow">
     <div class="case">起動コマンド <code>node</code> が見つからない → <span class="tag stop">止まる</span>Node.js 24 以上の入れ方（<code>winget install OpenJS.NodeJS.LTS</code>）を案内し、開き直してからの再実行を頼む<small class="src">skills/doctor/SKILL.md 手順 1</small> <span class="tag unv">未確認</span></div>
-    <div class="case">保存先が決まらない（環境変数も <code>--data</code> もない）、または展開されていない <code>${…}</code> が残っている → 「保存先」が要対処になり、Excel と予定表は「確認できません」（任意）として続ける<small class="src">tools/doctor.js checkHome()</small></div>
+    <div class="case">保存先が決まらない（環境変数も <code>--data</code> もない）、または展開されていない <code>${…}</code> が残っている → 「保存先」が [NG] になり、Excel と予定表は「確認できません」（任意）として続ける<small class="src">tools/doctor.js checkHome()</small></div>
     <div class="case">GitHub に新しい版がある → <code>[任意]</code> として、<code>/plugin marketplace update</code>・<code>/plugin update</code>・開き直しを案内する（終了コードは変えない）。マーケットプレイスに登録がなければ、確認せず今の版だけ示す。届かないときは理由を出す<small class="src">tools/doctor.js checkVersion()</small> <span class="tag unv">未確認</span>（新しい版があるときの実機の表示。同じ版の実機は確認済み）</div>
     <div class="case">祝日一覧に届かない →<code>[任意]</code> として、プロキシの確認と <code>NODE_USE_ENV_PROXY=1</code> を案内する（終了コードは変えない。最大 15 秒待つ）<small class="src">tools/doctor.js checkHolidays()</small></div>
     <div class="case">1 項目の確認が予期しない例外で落ちる → その項目を「確認できませんでした」にして、ほかの項目は出す<small class="src">tools/doctor.js guard()</small></div>
@@ -613,7 +613,7 @@
   <div class="n">2</div>
   <div class="cell empty"></div>
   <div class="cell empty"></div>
-  <div class="cell s">項目ごとに <code>[OK]</code>・<code>[要対処]</code>（必須が足りない）・<code>[任意]</code>（任意が足りない）と、対処の手順（「→」）を出す。必須が 1 つでも要対処なら終了コード 3、それ以外は 0。<small class="src">tools/doctor.js render()</small></div>
+  <div class="cell s">項目ごとに <code>[OK]</code>・<code>[NG]</code>（必須が足りない）・<code>[任意]</code>（任意が足りない）と、対処の手順（「→」）を出す。必須が 1 つでも [NG] なら終了コード 3、それ以外は 0。<small class="src">tools/doctor.js render()</small></div>
 
   <div class="branch"><p class="bt">Excel の読み取り（任意）の状態</p><div class="flow">
     <div class="case">Python が無い・3.8 未満 → <code>winget install Python.Python.3.12</code>、<code>py -3 --version</code> で確認、もう一度 doctor、の順に案内する <span class="tag unv">未確認</span><small class="src">tools/doctor.js checkExcel()</small></div>
@@ -625,7 +625,7 @@
 
   <div class="n">3</div>
   <div class="cell empty"></div>
-  <div class="cell c">項目ごとに伝える。<code>[OK]</code> は一言、<code>[要対処]</code> は「→」の手順を番号つきで、<code>[任意]</code> は使うかを聞き、使うときだけ手順を伝える。<small class="src">skills/doctor/SKILL.md 手順 2</small></div>
+  <div class="cell c">項目ごとに伝える。<code>[OK]</code> は一言、<code>[NG]</code> は「→」の手順を番号つきで、<code>[任意]</code> は使うかを聞き、使うときだけ手順を伝える。<small class="src">skills/doctor/SKILL.md 手順 2</small></div>
   <div class="cell empty"></div>
 
   <div class="n">4</div>
@@ -635,7 +635,7 @@
 
   <div class="n">5</div>
   <div class="cell empty"></div>
-  <div class="cell c">もう一度 <code>/project-board:doctor</code> を実行し、<code>[要対処]</code> が無くなったことを確かめる。<small class="src">skills/doctor/SKILL.md 手順 4</small></div>
+  <div class="cell c">もう一度 <code>/project-board:doctor</code> を実行し、<code>[NG]</code> が無くなったことを確かめる。<small class="src">skills/doctor/SKILL.md 手順 4</small></div>
   <div class="cell empty"></div>
 </div>
 <div class="note"><span class="tag unv">未確認</span>別の PC での実行、Python が無い・pip が無い環境での実行（単体テストの差し替えのみ）、<code>winget</code>・<code>ensurepip</code> の実行結果、プロキシの内側での祝日の接続、Claude Code から <code>/project-board:doctor</code> を呼ぶ動き。<small class="src">docs/development.md 動作環境の診断</small></div>

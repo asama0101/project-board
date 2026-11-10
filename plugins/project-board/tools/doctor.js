@@ -36,11 +36,17 @@ const guard = async (name, level, fn) => {
   try { return await fn(); } catch (e) { return item(name, level, `確認できませんでした（${e.message}）`); }
 };
 
+/** Windows 専用。それ以外は動かないので NG */
+function checkOs(platform) {
+  if (platform === "win32") return item("OS", "ok", "Windows");
+  return item("OS", "ng", `${platform}（Windows 専用です）`, ["Windows で使う"]);
+}
+
 function checkNode(version) {
   const major = Number(version.split(".")[0]);
-  const name = "Node.js";
-  if (major >= MIN_NODE) return item(name, "ok", `v${version}（${MIN_NODE} 以上が必要）`);
-  return item(name, "ng", `v${version}（${MIN_NODE} 以上が必要）`, [
+  const name = "実行環境";
+  if (major >= MIN_NODE) return item(name, "ok", `Node.js v${version}（${MIN_NODE} 以上が必要）`);
+  return item(name, "ng", `Node.js v${version}（${MIN_NODE} 以上が必要）`, [
     "winget install OpenJS.NodeJS.LTS を実行する（または https://nodejs.org/ から 24 以上を入れる）",
     "ターミナルを開き直し、node --version で 24 以上と表示されることを確認する",
     "もう一度 doctor を実行する",
@@ -140,17 +146,17 @@ const compareVersion = (a, b) => {
 
 /** 今の版を示し、GitHub がマーケットプレイスとして登録されていれば、最新の版かも確かめる（任意） */
 async function checkVersion(readPlugin, readMarketplace, latest) {
-  const name = "project-board の版";
+  const name = "版";
   const { version, repository } = readPlugin();
   const repo = repository?.match(/github\.com\/([^/]+\/[^/.]+)/)?.[1];
   const market = Object.entries(readMarketplace()).find(([, m]) => m.source?.source === "github" && m.source.repo === repo)?.[0];
-  if (!market) return item(name, "ok", `v${version}（GitHub のマーケットプレイスに登録されていないため、最新かは確認しません）`);
+  if (!market) return item(name, "info", `v${version}（GitHub のマーケットプレイスに登録されていないため、最新かは確認しません）`);
   let newest;
   try { newest = await latest(repo); } catch (e) {
-    return item(name, "opt", `v${version}（最新の版を確認できませんでした: ${e.message}）`, ["ネットワークにつながっているか、github.com への通信を止めていないかを確認する"]);
+    return item(name, "info", `v${version}（最新の版を確認できませんでした: ${e.message}）`, ["ネットワークにつながっているか、github.com への通信を止めていないかを確認する"]);
   }
-  if (compareVersion(newest, version) <= 0) return item(name, "ok", `v${version}（最新です）`);
-  return item(name, "opt", `v${version}（GitHub に v${newest} があります）`, [
+  if (compareVersion(newest, version) <= 0) return item(name, "info", `v${version}（最新です）`);
+  return item(name, "info", `v${version}（GitHub に v${newest} があります）`, [
     `/plugin marketplace update ${market} を実行する`,
     `/plugin update project-board@${market} を実行する`,
     "Claude Code を開き直す",
@@ -173,32 +179,33 @@ function checkMcp(dir, readMcp) {
 
 /** 全項目を確認する。依存（Node の版・書き込み・祝日・Python・MCP）は、テストで差し替えられる */
 export async function runChecks({
-  dir, nodeVersion = process.versions.node, canWrite = defaultCanWrite, exists = existsSync,
+  dir, platform = process.platform, nodeVersion = process.versions.node, canWrite = defaultCanWrite, exists = existsSync,
   holidays = fetchHolidays, run = realRun, readMcp = readMcpConfig,
   readPlugin = () => JSON.parse(readFileSync(PLUGIN_JSON, "utf8")), readMarketplace = readMarketplaces, latest = fetchLatestVersion,
 }) {
   return [
-    await guard("project-board の版", "opt", () => checkVersion(readPlugin, readMarketplace, latest)),
-    await guard("Node.js", "ng", () => checkNode(nodeVersion)),
+    await guard("OS", "ng", () => checkOs(platform)),
+    await guard("実行環境", "ng", () => checkNode(nodeVersion)),
     await guard("保存先", "ng", () => checkHome(dir, canWrite)),
     await guard("祝日一覧への接続（内閣府）", "opt", () => checkHolidays(holidays)),
     await guard("Excel の読み取り（Python・pip・openpyxl）", "opt", () => checkExcel(dir, run, exists)),
     await guard("予定表の MCP の指定", "opt", () => checkMcp(dir, readMcp)),
+    await guard("版", "info", () => checkVersion(readPlugin, readMarketplace, latest)),
   ];
 }
 
-const LABEL = { ok: "[OK]    ", ng: "[要対処]", opt: "[任意]  " };
+const LABEL = { ok: "[OK]", ng: "[NG]", opt: "[任意]", info: "[情報]" };
 
 /** 表示する行と終了コード。必須（ok・ng）が 1 つでも ng なら 3 */
 export function render(items) {
   const lines = ["project-board 動作環境の診断（何も変更しません）", ""];
   for (const i of items) {
     lines.push(`${LABEL[i.level]} ${i.name}: ${i.detail}`);
-    for (const f of i.fix) lines.push(`         → ${f}`);
+    for (const f of i.fix) lines.push(`  → ${f}`);
   }
   const ng = items.filter((i) => i.level === "ng").length;
   const opt = items.filter((i) => i.level === "opt").length;
-  lines.push("", ng ? `結果: 要対処の必須項目が ${ng} 件あります。上の「→」の順に進めてください。` : "結果: 必須の項目はすべて満たしています。" + (opt ? `任意の項目が ${opt} 件、未対応です（使うときだけ対処してください）。` : ""));
+  lines.push("", ng ? `結果: [NG] の必須項目が ${ng} 件あります。上の「→」の順に進めてください。` : "結果: 必須の項目はすべて満たしています。" + (opt ? `任意の項目が ${opt} 件、未対応です（使うときだけ対処してください）。` : ""));
   return { lines, exitCode: ng ? 3 : 0 };
 }
 

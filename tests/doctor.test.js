@@ -29,6 +29,7 @@ const pyStub = ({ version = "Python 3.12.1", probeOk = true, importOk = true, pi
 
 const base = () => ({
   dir: DIR,
+  platform: "win32",
   nodeVersion: "24.13.1",
   canWrite: () => true,
   exists: () => false,
@@ -41,18 +42,26 @@ const base = () => ({
 });
 const find = (items, name) => items.find((i) => i.name.includes(name));
 
-test("すべて満たすとき: 全項目 OK、終了コード 0。項目は 6 つで、ブラウザは含まない", async () => {
+test("すべて満たすとき: 全項目 OK、終了コード 0。項目は 7 つ（OS・実行環境・保存先・祝日・Excel・予定表・版）で、ブラウザは含まない", async () => {
   const items = await runChecks(base());
-  assert.deepEqual(items.map((i) => i.name.split("（")[0]), ["project-board の版", "Node.js", "保存先", "祝日一覧への接続", "Excel の読み取り", "予定表の MCP の指定"]);
-  assert.deepEqual(items.map((i) => i.level), ["ok", "ok", "ok", "ok", "ok", "ok"]);
+  assert.deepEqual(items.map((i) => i.name.split("（")[0]), ["OS", "実行環境", "保存先", "祝日一覧への接続", "Excel の読み取り", "予定表の MCP の指定", "版"]);
+  assert.deepEqual(items.map((i) => i.level), ["ok", "ok", "ok", "ok", "ok", "ok", "info"]);
   const r = render(items);
   assert.equal(r.exitCode, 0);
   assert.match(r.lines.join("\n"), /必須の項目はすべて満たしています/);
 });
 
-test("Node.js が 24 未満: 要対処。入れ方と確認の手順を出し、終了コード 3", async () => {
+test("OS が Windows 以外: [NG]。Windows 専用であることを出し、終了コード 3", async () => {
+  const items = await runChecks({ ...base(), platform: "linux" });
+  const o = find(items, "OS");
+  assert.equal(o.level, "ng");
+  assert.match(o.detail, /linux.*Windows 専用/);
+  assert.equal(render(items).exitCode, 3);
+});
+
+test("実行環境（Node.js）が 24 未満: [NG]。入れ方と確認の手順を出し、終了コード 3", async () => {
   const items = await runChecks({ ...base(), nodeVersion: "22.11.0" });
-  const n = find(items, "Node.js");
+  const n = find(items, "実行環境");
   assert.equal(n.level, "ng");
   assert.match(n.fix.join("\n"), /winget install/);
   assert.match(n.fix.join("\n"), /node --version/);
@@ -98,9 +107,9 @@ test("保存先がフォルダでない(ファイル)・展開されていない
 
 test("予期しない例外: その項目だけ「確認できませんでした」になり、ほかの項目は出る", async () => {
   const items = await runChecks({ ...base(), run: () => { throw new Error("spawn 失敗"); } });
-  assert.equal(items.length, 6);
+  assert.equal(items.length, 7);
   assert.match(find(items, "Excel").detail, /確認できませんでした（spawn 失敗）/);
-  assert.equal(find(items, "Node.js").level, "ok");
+  assert.equal(find(items, "実行環境").level, "ok");
 });
 
 test("Python が無い: 任意の項目。winget での入れ方、確認、CSV の代替を出す。終了コードは 0", async () => {
@@ -192,33 +201,33 @@ test("予定表の MCP が未設定: 任意。/project-board:mcp を案内する
 
 test("版: GitHub がマーケットプレイスに登録され、最新と同じ: OK", async () => {
   const v = find(await runChecks(base()), "版");
-  assert.equal(v.level, "ok");
+  assert.equal(v.level, "info");
   assert.match(v.detail, /v2\.0\.0（最新です）/);
 });
 
-test("版: GitHub に新しい版がある: 任意。marketplace update と plugin update の手順を出す。終了コードは 0", async () => {
+test("版: GitHub に新しい版がある: 情報。marketplace update と plugin update の手順を出す。終了コードは 0", async () => {
   const items = await runChecks({ ...base(), latest: async () => "2.1.0" });
   const v = find(items, "版");
-  assert.equal(v.level, "opt");
+  assert.equal(v.level, "info");
   assert.match(v.detail, /v2\.0\.0.*v2\.1\.0/);
   assert.match(v.fix.join("\n"), /\/plugin marketplace update project-board/);
   assert.match(v.fix.join("\n"), /\/plugin update project-board@project-board/);
   assert.equal(render(items).exitCode, 0);
-  assert.equal(find(await runChecks({ ...base(), latest: async () => "1.9.9" }), "版").level, "ok", "手元のほうが新しいときは OK");
-  assert.equal(find(await runChecks({ ...base(), latest: async () => "2.0.10" }), "版").level, "opt", "10 は 9 より新しい（数として比べる）");
+  assert.equal(find(await runChecks({ ...base(), latest: async () => "1.9.9" }), "版").level, "info", "手元のほうが新しいときも情報");
+  assert.equal(find(await runChecks({ ...base(), latest: async () => "2.0.10" }), "版").level, "info", "10 は 9 より新しい（数として比べる）");
 });
 
 test("版: GitHub がマーケットプレイスに登録されていない: 今の版だけ示し、取得しない", async () => {
   let called = false;
   const v = find(await runChecks({ ...base(), readMarketplace: () => ({ x: { source: { source: "directory", path: "D:\\x" } } }), latest: async () => { called = true; } }), "版");
-  assert.equal(v.level, "ok");
+  assert.equal(v.level, "info");
   assert.match(v.detail, /v2\.0\.0.*登録されていない/);
   assert.equal(called, false);
 });
 
-test("版: GitHub に届かない: 任意。理由を出す", async () => {
+test("版: GitHub に届かない: 情報。理由を出す", async () => {
   const v = find(await runChecks({ ...base(), latest: async () => { throw new Error("接続できませんでした（ENOTFOUND）"); } }), "版");
-  assert.equal(v.level, "opt");
+  assert.equal(v.level, "info");
   assert.match(v.detail, /v2\.0\.0.*ENOTFOUND/);
 });
 
@@ -227,13 +236,13 @@ test("任意の項目だけが足りないときは、終了コード 0。必須
   assert.equal(render(optionalOnly).exitCode, 0);
   const required = await runChecks({ ...base(), nodeVersion: "20.0.0" });
   assert.equal(render(required).exitCode, 3);
-  assert.match(render(required).lines.join("\n"), /要対処の必須項目が 1 件/);
+  assert.match(render(required).lines.join("\n"), /\[NG\] の必須項目が 1 件/);
 });
 
-test("render: 状態の見出し([OK]・[要対処]・[任意])と、対処の行(→)を出す", async () => {
+test("render: 状態の見出し([OK]・[NG]・[任意]・[情報])と、対処の行(→)を出す", async () => {
   const items = await runChecks({ ...base(), nodeVersion: "20.0.0", readMcp: () => ({}) });
   const text = render(items).lines.join("\n");
-  assert.match(text, /\[要対処\]\s+Node\.js/);
+  assert.match(text, /\[NG\] 実行環境: Node\.js/);
   assert.match(text, /\[任意\]\s+予定表/);
   assert.match(text, /^\s+→ /m);
 });
@@ -245,7 +254,7 @@ test("CLI: 必須が足りなければ診断だけして終了コード 3。祝�
   assert.equal(r.status, 3, r.stderr);
   assert.match(r.stdout, /動作環境の診断/);
   assert.match(r.stdout, /\[任意\]\s+祝日/);
-  assert.match(r.stdout, /\[要対処\]\s+保存先/);
+  assert.match(r.stdout, /\[NG\] 保存先/);
 });
 
 test("CLI: 何も変更しない。存在しない保存先を渡しても、フォルダを作らない", () => {
