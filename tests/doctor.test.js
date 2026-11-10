@@ -44,7 +44,7 @@ const find = (items, name) => items.find((i) => i.name.includes(name));
 test("すべて満たすとき: 全項目 OK、終了コード 0。項目は 6 つで、ブラウザは含まない", async () => {
   const items = await runChecks(base());
   assert.deepEqual(items.map((i) => i.name.split("（")[0]), ["project-board の版", "Node.js", "保存先", "祝日一覧への接続", "Excel の読み取り", "予定表の MCP の指定"]);
-  assert.deepEqual(items.map((i) => i.level), ["ok", "ok", "ok", "ok", "ok", "ok"]);
+  assert.deepEqual(items.map((i) => i.level), ["info", "ok", "ok", "ok", "ok", "ok"]);
   const r = render(items);
   assert.equal(r.exitCode, 0);
   assert.match(r.lines.join("\n"), /必須の項目はすべて満たしています/);
@@ -192,33 +192,33 @@ test("予定表の MCP が未設定: 任意。/project-board:mcp を案内する
 
 test("版: GitHub がマーケットプレイスに登録され、最新と同じ: OK", async () => {
   const v = find(await runChecks(base()), "版");
-  assert.equal(v.level, "ok");
+  assert.equal(v.level, "info");
   assert.match(v.detail, /v2\.0\.0（最新です）/);
 });
 
-test("版: GitHub に新しい版がある: 任意。marketplace update と plugin update の手順を出す。終了コードは 0", async () => {
+test("版: GitHub に新しい版がある: 情報。marketplace update と plugin update の手順を出す。終了コードは 0", async () => {
   const items = await runChecks({ ...base(), latest: async () => "2.1.0" });
   const v = find(items, "版");
-  assert.equal(v.level, "opt");
+  assert.equal(v.level, "info");
   assert.match(v.detail, /v2\.0\.0.*v2\.1\.0/);
   assert.match(v.fix.join("\n"), /\/plugin marketplace update project-board/);
   assert.match(v.fix.join("\n"), /\/plugin update project-board@project-board/);
   assert.equal(render(items).exitCode, 0);
-  assert.equal(find(await runChecks({ ...base(), latest: async () => "1.9.9" }), "版").level, "ok", "手元のほうが新しいときは OK");
-  assert.equal(find(await runChecks({ ...base(), latest: async () => "2.0.10" }), "版").level, "opt", "10 は 9 より新しい（数として比べる）");
+  assert.equal(find(await runChecks({ ...base(), latest: async () => "1.9.9" }), "版").level, "info", "手元のほうが新しいときも情報");
+  assert.equal(find(await runChecks({ ...base(), latest: async () => "2.0.10" }), "版").level, "info", "10 は 9 より新しい（数として比べる）");
 });
 
 test("版: GitHub がマーケットプレイスに登録されていない: 今の版だけ示し、取得しない", async () => {
   let called = false;
   const v = find(await runChecks({ ...base(), readMarketplace: () => ({ x: { source: { source: "directory", path: "D:\\x" } } }), latest: async () => { called = true; } }), "版");
-  assert.equal(v.level, "ok");
+  assert.equal(v.level, "info");
   assert.match(v.detail, /v2\.0\.0.*登録されていない/);
   assert.equal(called, false);
 });
 
-test("版: GitHub に届かない: 任意。理由を出す", async () => {
+test("版: GitHub に届かない: 情報。理由を出す", async () => {
   const v = find(await runChecks({ ...base(), latest: async () => { throw new Error("接続できませんでした（ENOTFOUND）"); } }), "版");
-  assert.equal(v.level, "opt");
+  assert.equal(v.level, "info");
   assert.match(v.detail, /v2\.0\.0.*ENOTFOUND/);
 });
 
@@ -227,13 +227,13 @@ test("任意の項目だけが足りないときは、終了コード 0。必須
   assert.equal(render(optionalOnly).exitCode, 0);
   const required = await runChecks({ ...base(), nodeVersion: "20.0.0" });
   assert.equal(render(required).exitCode, 3);
-  assert.match(render(required).lines.join("\n"), /要対処の必須項目が 1 件/);
+  assert.match(render(required).lines.join("\n"), /\[NG\] の必須項目が 1 件/);
 });
 
-test("render: 状態の見出し([OK]・[要対処]・[任意])と、対処の行(→)を出す", async () => {
+test("render: 状態の見出し([OK]・[NG]・[任意]・[情報])と、対処の行(→)を出す", async () => {
   const items = await runChecks({ ...base(), nodeVersion: "20.0.0", readMcp: () => ({}) });
   const text = render(items).lines.join("\n");
-  assert.match(text, /\[要対処\]\s+Node\.js/);
+  assert.match(text, /\[NG\] Node\.js/);
   assert.match(text, /\[任意\]\s+予定表/);
   assert.match(text, /^\s+→ /m);
 });
@@ -245,7 +245,7 @@ test("CLI: 必須が足りなければ診断だけして終了コード 3。祝�
   assert.equal(r.status, 3, r.stderr);
   assert.match(r.stdout, /動作環境の診断/);
   assert.match(r.stdout, /\[任意\]\s+祝日/);
-  assert.match(r.stdout, /\[要対処\]\s+保存先/);
+  assert.match(r.stdout, /\[NG\] 保存先/);
 });
 
 test("CLI: 何も変更しない。存在しない保存先を渡しても、フォルダを作らない", () => {
