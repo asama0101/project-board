@@ -1,7 +1,7 @@
 // 使い方: node tools/holidays.js <update|status> <data.json>
 // 日本の祝日（内閣府の祝日一覧 CSV）を取得して data.json の settings.nationalHolidays に書く。結果は JSON で標準出力へ。
 // 取得するだけで、こちらのデータは何も送らない。失敗したら data.json は変えず、理由を標準エラーに出して終了コード 1。
-// 取得先は、環境変数 PJ_LENS_HOLIDAYS_URL で変えられる（テスト用）。
+// 取得先は、環境変数 PROJECT_BOARD_HOLIDAYS_URL で変えられる（テスト用）。
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { today, diffDays, isDate } from "../src/core/dates.js";
@@ -42,7 +42,7 @@ export function needsHolidayUpdate(settings, neededUntil = null) {
 
 /** 内閣府の一覧を取得して、settings.nationalHolidays に入れる値を返す。失敗は例外 */
 export async function fetchHolidays() {
-  const url = process.env.PJ_LENS_HOLIDAYS_URL || DEFAULT_URL;
+  const url = process.env.PROJECT_BOARD_HOLIDAYS_URL || DEFAULT_URL;
   const res = await fetch(url, { signal: AbortSignal.timeout(15000) }).catch((e) => {
     throw new Error(e.name === "TimeoutError" ? "祝日の一覧の取得がタイムアウトしました（15 秒）" : `祝日の一覧に接続できませんでした（${e.cause?.code ?? e.message}）`);
   });

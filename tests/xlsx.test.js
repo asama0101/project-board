@@ -203,7 +203,7 @@ test("統合: 作業フォルダに置かれた openpyxl.py は、doctor でも�
   const work = mkdtempSync(join(tmpdir(), "pjl-cwd-"));
   try {
     writeFileSync(join(work, "openpyxl.py"), ['open("MARK.txt", "w").write("ran")', '__version__ = "3.1.5"', ""].join("\n"));
-    spawnSync(process.execPath, [XLSX_JS, "doctor", "--data", join(work, "home")], { cwd: work, encoding: "utf8", timeout: 120000, env: { ...process.env, PJ_LENS_HOME: "" } });
+    spawnSync(process.execPath, [XLSX_JS, "doctor", "--data", join(work, "home")], { cwd: work, encoding: "utf8", timeout: 120000, env: { ...process.env, PROJECT_BOARD_HOME: "" } });
     assert.equal(existsSync(join(work, "MARK.txt")), false, "作業フォルダの偽物を実行した");
   } finally { rmSync(work, { recursive: true, force: true }); }
 });
@@ -231,14 +231,14 @@ import { diagnose } from "../plugins/project-board/tools/xlsx.js";
 const XLSX_JS = join(REPO, "tools/xlsx.js");
 const scratch = mkdtempSync(join(tmpdir(), "pjl-xlsx-"));
 after(() => rmSync(scratch, { recursive: true, force: true }));
-// PJ_LENS_HOME が開発者の環境に残っていても影響しないよう、テストごとに明示する
-const cli = (args, env = {}) => spawnSync(process.execPath, [XLSX_JS, ...args], { encoding: "utf8", timeout: 300000, env: { ...process.env, PJ_LENS_HOME: "", ...env } });
+// PROJECT_BOARD_HOME が開発者の環境に残っていても影響しないよう、テストごとに明示する
+const cli = (args, env = {}) => spawnSync(process.execPath, [XLSX_JS, ...args], { encoding: "utf8", timeout: 300000, env: { ...process.env, PROJECT_BOARD_HOME: "", ...env } });
 
 test("置き場が決まらないときは終了コード 2（doctor・setup・読み取り）", () => {
   for (const args of [["doctor"], ["setup"], ["x.xlsx"]]) {
     const r = cli(args);
     assert.equal(r.status, 2, args.join(" "));
-    assert.match(r.stderr, /PJ_LENS_HOME/);
+    assert.match(r.stderr, /PROJECT_BOARD_HOME/);
     assert.match(r.stderr, /--data/);
   }
 });
@@ -248,9 +248,9 @@ test("引数の誤りは終了コード 2（引数なし・サブコマンドに
   assert.equal(cli(["doctor", "余分", "--data", join(scratch, "a")]).status, 2);
 });
 
-test("置き場の優先順: PJ_LENS_HOME が --data に勝つ。位置引数では渡せない（終了コード 2）", () => {
+test("置き場の優先順: PROJECT_BOARD_HOME が --data に勝つ。位置引数では渡せない（終了コード 2）", () => {
   const home = join(scratch, "env home");
-  const r = cli(["doctor", "--data", join(scratch, "arg")], { PJ_LENS_HOME: home });
+  const r = cli(["doctor", "--data", join(scratch, "arg")], { PROJECT_BOARD_HOME: home });
   assert.equal(r.status, 3);
   assert.ok(r.stdout.includes(home), r.stdout);
   assert.ok(!r.stdout.includes(join(scratch, "arg")));
@@ -293,7 +293,7 @@ test("統合: 空白と日本語を含む置き場で doctor が動き、setup �
   r = cli(["setup", "--yes", "--data", home]);
   assert.equal(r.status, 0, r.stderr);
   assert.equal(existsSync(venvPython(home)), true, "専用の venv を作る");
-  r = cli(["doctor"], { PJ_LENS_HOME: home });
+  r = cli(["doctor"], { PROJECT_BOARD_HOME: home });
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /使えます/);
   const fixture = fileURLToPath(new URL("fixtures/wbs-merged.xlsx", import.meta.url));
@@ -390,7 +390,7 @@ test("CLI: 旧 --into は受け付けない(余分な引数として終了コー
   const dir = mkdtempSync(join(tmpdir(), "pjl-into-"));
   try {
     for (const args of [["setup", "--into", "system"], ["setup", "--into"]]) {
-      const r = spawnSync(process.execPath, [XLSX_JS, ...args, "--data", dir], { encoding: "utf8", env: { ...process.env, PJ_LENS_HOME: "" } });
+      const r = spawnSync(process.execPath, [XLSX_JS, ...args, "--data", dir], { encoding: "utf8", env: { ...process.env, PROJECT_BOARD_HOME: "" } });
       assert.equal(r.status, 2, args.join(" "));
       assert.match(r.stderr, /setup \[--system\] \[--yes\]/);
     }

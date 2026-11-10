@@ -26,7 +26,7 @@ function work() {
 const CLI = join(REPO, "tools/inbox.js");
 const NO_NET = "http://127.0.0.1:1/syukujitsu.csv"; // 祝日の取得先。閉じたポートにして、テストが内閣府のサイトへ出ないようにする
 const run = (...args) => {
-  const r = spawnSync(process.execPath, [CLI, ...args], { encoding: "utf8", env: { ...process.env, PJ_LENS_HOLIDAYS_URL: NO_NET } });
+  const r = spawnSync(process.execPath, [CLI, ...args], { encoding: "utf8", env: { ...process.env, PROJECT_BOARD_HOLIDAYS_URL: NO_NET } });
   let out = null;
   try { out = JSON.parse(r.stdout); } catch { /* 出力が JSON でないこともある */ }
   return { status: r.status, out, err: r.stderr, raw: r.stdout };
@@ -234,7 +234,7 @@ async function holidayServer(status, dates = []) {
   return s;
 }
 const runWith = (url, ...args) => new Promise((resolve) => {
-  const p = spawn(process.execPath, [CLI, ...args], { env: { ...process.env, PJ_LENS_HOLIDAYS_URL: url } });
+  const p = spawn(process.execPath, [CLI, ...args], { env: { ...process.env, PROJECT_BOARD_HOLIDAYS_URL: url } });
   let out = "", err = "";
   p.stdout.on("data", (c) => (out += c));
   p.stderr.on("data", (c) => (err += c));

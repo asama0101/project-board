@@ -12,7 +12,7 @@ import { takeData, pickHome } from "./home.js";
 const USAGE = `使い方: node tools/intake.js <コマンド> <data.json> ...
   wbs-plan | wbs-apply   <data.json> <projectId> <rows.json> [--source <取り込んだファイル名>]   (--source は wbs-apply の取り込み記録用)
   calendar-auto                  <data.json> <fetched.json> <開始日> <終了日> [--data <置き場>]   (自動更新。見張りと /project-board:intake calendar が使う。承認の確認なしで書く。終わった会議・確認済みの会議は変えず、取得が 0 件なら消さない)
-  calendar-plan | calendar-apply <data.json> <fetched.json> <開始日> <終了日> [--data <置き場>]   (--data は、自分のメールアドレスなどの設定（project-board-mcp.json）の置き場。環境変数 PJ_LENS_HOME が優先)
+  calendar-plan | calendar-apply <data.json> <fetched.json> <開始日> <終了日> [--data <置き場>]   (--data は、自分のメールアドレスなどの設定（project-board-mcp.json）の置き場。環境変数 PROJECT_BOARD_HOME が優先)
   rules-list | rules-apply <data.json>
   rules-set              <data.json> <keyword> <projectId>
   rules-remove           <data.json> <keyword>

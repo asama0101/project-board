@@ -2,7 +2,7 @@
 //   node tools/xlsx.js doctor [--data <置き場>]            診断のみ（何も変更しない）。使う Python のパスと、読み取りに使うパッケージの場所を表示する
 //   node tools/xlsx.js setup [--system] [--yes] [--data <置き場>]   openpyxl を入れる。既定は専用の venv（<置き場>/venv）、--system はシステムの Python のユーザー領域（pip install --user）。--yes なしは入れ先と内容を表示して終了コード 3
 //   node tools/xlsx.js <ファイル.xlsx> [--system] [--yes] [--data <置き場>]  Excel を JSON（全シートの行）で標準出力へ出す
-// 置き場は、環境変数 PJ_LENS_HOME が最優先、次に --data（${CLAUDE_PLUGIN_DATA}）。どちらもなければ終了コード 2。
+// 置き場は、環境変数 PROJECT_BOARD_HOME が最優先、次に --data（${CLAUDE_PLUGIN_DATA}）。どちらもなければ終了コード 2。
 // 読み取りは Python（openpyxl）で行う。使う openpyxl は、次の順で決める。
 //   1. システムの Python に、固定した版と同じ 3.x.y 系の openpyxl と、et_xmlfile・defusedxml が入っていれば、それを使う（何も入れない）。
 //   2. <置き場>/venv に、固定した版が入っていれば、その venv の Python を使う。
@@ -180,7 +180,7 @@ function installIntoSystem(python, pin, run, requirements) {
 }
 
 const SUBCOMMANDS = ["doctor", "setup"];
-const USAGE = "使い方: node tools/xlsx.js doctor | setup [--system] [--yes] | <ファイル.xlsx> [--system] [--yes]（置き場は PJ_LENS_HOME か --data <置き場>）";
+const USAGE = "使い方: node tools/xlsx.js doctor | setup [--system] [--yes] | <ファイル.xlsx> [--system] [--yes]（置き場は PROJECT_BOARD_HOME か --data <置き場>）";
 
 function main() {
   const { data, rest: all } = takeData(process.argv.slice(2));
