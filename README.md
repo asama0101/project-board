@@ -44,12 +44,38 @@
 
 ### 1. プラグインを入れる
 
-Claude Code で、次の 2 つを実行します。
+入れ方は 2 つです。どちらも、入れたあとの使い方は同じです。
+
+| 方法 | マーケットプレイスの登録元 | 向いている場面 |
+|---|---|---|
+| A. GitHub から入れる | GitHub のリポジトリ `asama0101/project-board` | 通常の導入。最新版の確認が `/project-board:doctor` で出ます |
+| B. ダウンロードして入れる | ローカルに置いた、このリポジトリのフォルダ | Claude Code から GitHub へ接続できないとき。版を固定したいとき |
+
+#### 方法 A. GitHub をマーケットプレイスに登録して入れる
+
+Claude Code で、次の 2 つを実行します。1 つ目で GitHub のリポジトリをマーケットプレイスとして登録し、2 つ目でプラグインを入れます。
 
 ```
 /plugin marketplace add asama0101/project-board
 /plugin install project-board@project-board
 ```
+
+#### 方法 B. ローカルにダウンロードして入れる
+
+1. このリポジトリをダウンロードします。次のどちらかを選びます。
+   - git を使う: 好きな場所に clone します（例: `D:\tools\project-board`）。
+     ```
+     git clone https://github.com/asama0101/project-board.git D:\tools\project-board
+     ```
+   - git を使わない: GitHub のリポジトリ画面で「Code」→「Download ZIP」を選び、ZIP を展開します。展開してできたフォルダの中に、`.claude-plugin` フォルダがあることを確かめます。
+2. Claude Code で、ダウンロードしたフォルダ（`.claude-plugin` フォルダがある階層）をマーケットプレイスとして登録し、プラグインを入れます。
+
+```
+/plugin marketplace add D:\tools\project-board
+/plugin install project-board@project-board
+```
+
+ダウンロードしたフォルダは、入れたあとも消さずに置いてください。更新するときに、このフォルダを読み直します。
 
 ### 2. 初回の準備
 
@@ -100,7 +126,7 @@ project-board.html: 作りました
 
 ### 更新
 
-Claude Code の `/plugin` 画面で、project-board を更新します。そのあと、使っている作業フォルダごとに `/project-board:init` を実行します。画面（`project-board.html`）だけが新しい版になり、`data.json` は変わりません。
+Claude Code の `/plugin` 画面で、project-board を更新します。方法 B で入れたときは、先にフォルダを新しい版に差し替えます（git なら `git pull`、ZIP なら展開し直し）。そのあと、使っている作業フォルダごとに `/project-board:init` を実行します。画面（`project-board.html`）だけが新しい版になり、`data.json` は変わりません。
 
 ### 動作環境の確認
 
