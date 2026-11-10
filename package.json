@@ -1,0 +1,9 @@
+{
+  "name": "project-board-dev",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "build": "node plugins/project-board/tools/build.js"
+  }
+}

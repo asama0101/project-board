@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="project-board">
+<title>project-board</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div><h1>project-board</h1><div class="today" id="todaylabel"></div></div>
+    <nav role="tablist" aria-label="画面">
+      <button role="tab" id="tab-gantt" aria-selected="true">ガントチャート</button>
+      <button role="tab" id="tab-list" aria-selected="false">リスト</button>
+      <button role="tab" id="tab-schedule" aria-selected="false">スケジュール</button>
+      <button role="tab" id="tab-workload" aria-selected="false">稼働</button>
+      <button role="tab" id="tab-settings" aria-selected="false">設定</button>
+    </nav>
+    <div class="filebar" id="filebar"></div>
+  </header>
+  <div id="banner" role="status"></div>
+  <main id="view"></main>
+</div>
+<div id="claudebar"></div>
+<div id="toast" class="toast" hidden role="status"></div>
+<script>/*__JS__*/</script>
+</body>
+</html>

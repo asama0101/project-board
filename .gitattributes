@@ -1,0 +1,2 @@
+# 完成版ダッシュボードは改行コードを変換しない（ビルド結果との一致をテストするため）
+plugins/project-board/assets/project-board.html -text

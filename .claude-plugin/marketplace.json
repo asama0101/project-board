@@ -1,0 +1,16 @@
+{
+  "name": "project-board",
+  "owner": {
+    "name": "project-board contributors"
+  },
+  "plugins": [
+    {
+      "name": "project-board",
+      "source": "./plugins/project-board",
+      "description": "プロジェクト・タスク管理ダッシュボードと、日程見直しと取り込み（WBS・予定表）のサブエージェント。Windows 専用"
+    }
+  ],
+  "metadata": {
+    "description": "ネットワーク設備の管理者向け、プロジェクト・タスク管理ダッシュボードと Claude Code のサブエージェント"
+  }
+}

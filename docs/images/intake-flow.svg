@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 260" font-family="'Yu Gothic','Meiryo','Hiragino Sans',sans-serif" role="img" aria-labelledby="t d">
+  <title id="t">取り込みの流れ</title>
+  <desc id="d">読み取り、変更案の表、承認、書き込みの順に進む。承認の前は data.json を変えない。</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+  </defs>
+  <rect width="1000" height="260" fill="#ffffff"/>
+
+  <!-- 承認前の範囲 -->
+  <rect x="10" y="50" width="700" height="170" rx="10" fill="#f8fafc" stroke="#64748b" stroke-width="2" stroke-dasharray="7 5"/>
+  <text x="24" y="40" font-size="17" font-weight="bold" fill="#334155">承認の前は、data.json を変えない</text>
+
+  <rect x="30" y="90" width="190" height="100" rx="10" fill="#ffffff" stroke="#475569" stroke-width="2"/>
+  <text x="125" y="122" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">① 読み取り</text>
+  <text x="125" y="148" text-anchor="middle" font-size="16" fill="#1e293b">Excel・CSV・</text>
+  <text x="125" y="168" text-anchor="middle" font-size="16" fill="#1e293b">予定表を読む</text>
+
+  <rect x="270" y="90" width="190" height="100" rx="10" fill="#ffffff" stroke="#475569" stroke-width="2"/>
+  <text x="365" y="122" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">② 変更案の表</text>
+  <text x="365" y="148" text-anchor="middle" font-size="16" fill="#1e293b">追加・更新・削除を</text>
+  <text x="365" y="168" text-anchor="middle" font-size="16" fill="#1e293b">表で見せる</text>
+
+  <rect x="510" y="90" width="190" height="100" rx="10" fill="#fef9c3" stroke="#a16207" stroke-width="2"/>
+  <text x="605" y="122" text-anchor="middle" font-size="18" font-weight="bold" fill="#713f12">③ あなたの承認</text>
+  <text x="605" y="148" text-anchor="middle" font-size="16" fill="#713f12">表を確認して、</text>
+  <text x="605" y="168" text-anchor="middle" font-size="16" fill="#713f12">承認する</text>
+
+  <rect x="770" y="90" width="210" height="100" rx="10" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+  <text x="875" y="122" text-anchor="middle" font-size="18" font-weight="bold" fill="#14532d">④ 書き込み</text>
+  <text x="875" y="148" text-anchor="middle" font-size="16" fill="#14532d">data.json を</text>
+  <text x="875" y="168" text-anchor="middle" font-size="16" fill="#14532d">更新する</text>
+
+  <line x1="222" y1="140" x2="266" y2="140" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="462" y1="140" x2="506" y2="140" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="702" y1="140" x2="766" y2="140" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+</svg>

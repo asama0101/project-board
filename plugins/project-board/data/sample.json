@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "settings": { "workday": { "start": "09:00", "end": "18:00" }, "waitingLongDays": 7,
+    "projectRules": [ { "keyword": "ベンダーX", "projectId": "A" } ], "labels": { "group": "大項目", "subgroup": "中項目" } },
+  "projects": [
+    { "id": "A", "name": "本社コアSW更改", "type": "更改", "status": "進行中", "start": "2026-06-01", "due": "2027-03-31",
+      "milestones": [ { "name": "機器発注", "date": "2026-08-31" }, { "name": "本番切替", "date": "2027-02-20" } ] },
+    { "id": "B", "name": "拠点B 回線増設", "type": "増設", "status": "進行中", "start": "2026-09-01", "due": "2026-12-18",
+      "milestones": [ { "name": "開通", "date": "2026-12-01" } ] },
+    { "id": "C", "name": "VPN 断続切断の対処", "type": "不具合対処", "status": "進行中", "start": "2026-10-05", "due": "2026-11-13",
+      "milestones": [ { "name": "原因特定", "date": "2026-10-30" } ] }
+  ],
+  "tasks": [
+    { "id": "A1", "projectId": "A", "group": "設計", "subgroup": "要件整理", "title": "要件整理", "due": "2026-07-31", "start": "2026-06-01", "status": "Done", "memo": "", "predecessors": [], "waitingOn": null, "importance": null, "doneAt": "2026-07-28", "checklist": [{ "id": "c1", "text": "現行構成の洗い出し", "done": true }, { "id": "c2", "text": "要件の一覧を作る", "done": true }, { "id": "c3", "text": "関係者のレビュー", "done": true }], "sessions": [] },
+    { "id": "A2", "projectId": "A", "group": "調達", "subgroup": "機器選定", "title": "機器選定・見積取得", "due": "2026-08-20", "start": null, "status": "Done", "memo": "", "predecessors": ["A1"], "waitingOn": null, "importance": null, "doneAt": "2026-08-18", "sessions": [] },
+    { "id": "A3", "projectId": "A", "group": "調達", "subgroup": "機器選定", "title": "機器の発注（ベンダーX）", "due": "2026-10-16", "start": null, "status": "Waiting", "memo": "納期回答待ち", "predecessors": ["A2"], "waitingOn": { "party": "ベンダーX", "since": "2026-10-09" }, "importance": "high", "doneAt": null, "sessions": [] },
+    { "id": "A4", "projectId": "A", "group": "構築", "subgroup": "検証環境", "title": "検証環境の構築", "due": "2026-11-27", "start": null, "status": "To Do", "memo": "", "predecessors": ["A3"], "waitingOn": null, "importance": null, "doneAt": null, "sessions": [] },
+    { "id": "A5", "projectId": "A", "group": "構築", "subgroup": "切替準備", "title": "切替手順書の作成", "due": "2026-12-25", "start": "2026-10-12", "status": "In Progress", "memo": "", "predecessors": [], "waitingOn": null, "importance": null, "doneAt": null, "checklist": [{ "id": "c1", "text": "切替の流れを書く", "done": true }, { "id": "c2", "text": "切り戻し手順を書く", "done": true }, { "id": "c3", "text": "作業時間を見積もる", "done": false }, { "id": "c4", "text": "レビューを受ける", "done": false }],
+      "sessions": [
+        { "id": "S1", "date": "2026-10-14", "start": "13:00", "end": "15:00", "kind": "actual" },
+        { "id": "S2", "date": "2026-10-19", "start": "10:00", "end": "11:30", "kind": "actual" },
+        { "id": "S3", "date": "2026-10-21", "start": "14:00", "end": "16:00", "kind": "planned" } ] },
+    { "id": "A6", "projectId": "A", "group": "構築", "subgroup": "切替準備", "title": "切替リハーサル", "due": "2027-02-05", "start": null, "status": "To Do", "memo": "", "predecessors": ["A4", "A5"], "waitingOn": null, "importance": null, "doneAt": null, "sessions": [] },
+    { "id": "A7", "projectId": "A", "group": "構築", "subgroup": "切替準備", "title": "本番切替", "due": "2027-02-20", "start": null, "status": "To Do", "memo": "", "predecessors": ["A6"], "waitingOn": null, "importance": "high", "doneAt": null, "sessions": [] },
+    { "id": "B1", "projectId": "B", "title": "回線の申込", "due": "2026-09-15", "start": "2026-09-01", "status": "Done", "memo": "", "predecessors": [], "waitingOn": null, "importance": null, "doneAt": "2026-09-14", "sessions": [] },
+    { "id": "B2", "projectId": "B", "title": "ルータ設定の作成", "due": "2026-10-23", "start": "2026-10-19", "status": "In Progress", "memo": "", "predecessors": [], "waitingOn": null, "importance": null, "doneAt": null,
+      "sessions": [
+        { "id": "S4", "date": "2026-10-19", "start": "15:00", "end": "16:00", "kind": "actual" },
+        { "id": "S5", "date": "2026-10-22", "start": "10:00", "end": "12:00", "kind": "planned" } ] },
+    { "id": "B3", "projectId": "B", "title": "現地工事の立会い調整", "due": "2026-11-20", "start": null, "status": "Waiting", "memo": "", "predecessors": ["B1"], "waitingOn": { "party": "通信事業者", "since": "2026-10-15" }, "importance": null, "doneAt": null, "sessions": [] },
+    { "id": "B4", "projectId": "B", "title": "開通試験", "due": "2026-12-01", "start": null, "status": "To Do", "memo": "", "predecessors": ["B2", "B3"], "waitingOn": null, "importance": "high", "doneAt": null, "sessions": [] },
+    { "id": "C1", "projectId": "C", "title": "ログの収集", "due": "2026-10-22", "start": "2026-10-19", "status": "In Progress", "memo": "", "predecessors": [], "waitingOn": null, "importance": null, "doneAt": null, "sessions": [] },
+    { "id": "C2", "projectId": "C", "title": "ベンダーへ問い合わせ", "due": "2026-10-28", "start": null, "status": "Waiting", "memo": "", "predecessors": ["C1"], "waitingOn": { "party": "ベンダーY", "since": "2026-10-20" }, "importance": null, "doneAt": null, "sessions": [] },
+    { "id": "C3", "projectId": "C", "title": "恒久対策の適用", "due": "2026-11-13", "start": null, "status": "To Do", "memo": "", "predecessors": ["C2"], "waitingOn": null, "importance": null, "doneAt": null, "sessions": [] }
+  ],
+  "events": [
+    { "id": "m1", "date": "2026-10-20", "start": "09:30", "end": "10:30", "title": "NW運用定例", "source": "mcp", "skip": false, "externalId": "ext-001", "confirmed": true },
+    { "id": "m2", "date": "2026-10-20", "start": "13:00", "end": "14:00", "title": "ベンダーX 打合せ", "source": "manual", "skip": false, "externalId": null, "projectId": "A", "projectBy": "rule" },
+    { "id": "m3", "date": "2026-10-21", "start": "10:00", "end": "11:00", "title": "部内会議", "source": "mcp", "skip": false, "externalId": "ext-002" }
+  ],
+  "changeLog": [
+    { "at": "2026-10-09", "taskIds": ["A3", "A4"], "reason": "ベンダーX の納期回答が遅れたため", "cause": "ベンダー", "deltaDays": 7 }
+  ]
+}

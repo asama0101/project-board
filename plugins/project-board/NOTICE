@@ -1,0 +1,20 @@
+project-board の出典とライセンス
+
+project-board 自体のライセンスは MIT（リポジトリ直下の LICENSE）。
+
+## 同梱している外部のコード・文書
+
+なし。ダッシュボード（assets/project-board.html）は、このリポジトリの src/ から作っていて、外部のライブラリを埋め込んでいない。
+
+## 実行時に取得するもの（同梱しない・再配布しない）
+
+- 内閣府「国民の祝日について」の祝日一覧（CSV）
+  https://www8.cao.go.jp/chosei/shukujitsu/syukujitsu.csv
+  tools/holidays.js が、利用者の data.json に書く祝日を求めるために取得する。
+  出典: 内閣府。利用条件は、内閣府のサイトの利用規約による。
+
+- Excel（.xlsx）を読むための Python パッケージ
+  システムの Python に使える版が無いときだけ、tools/xlsx.js が、利用者の承認を得たうえで、requirements.txt に固定した版とハッシュで、専用の venv、または利用者が選んだ場合はシステムの Python のユーザー領域へ取得する（PyPI）。
+  - openpyxl 3.1.5: MIT License
+  - et_xmlfile 2.0.0: MIT License
+  - defusedxml 0.7.1: Python Software Foundation License

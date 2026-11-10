@@ -1,0 +1,15 @@
+{
+  "name": "project-board",
+  "version": "1.0.0",
+  "description": "ネットワーク設備の管理者向けに、複数プロジェクトの進捗と自分のタスクを1つのダッシュボードで管理する。日程の見直しと取り込み（Excel の WBS・予定表）をサブエージェントが手伝う。Windows 専用。",
+  "license": "MIT",
+  "author": {
+    "name": "project-board contributors"
+  },
+  "repository": "https://github.com/asama0101/project-board",
+  "keywords": [
+    "project-management",
+    "network",
+    "dashboard"
+  ]
+}

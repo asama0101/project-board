@@ -1,0 +1,518 @@
+/* 承認済みデザインのスタイル。Web フォントは使わない */
+body{margin:0}
+/* Layout: 上部に画面切替、俯瞰はプロジェクト別のタイムライン（機器ラックのように1案件=1段）＋右に今日の優先 */
+:root{
+  --bg:#F0F3F7; --surface:#FFFFFF; --ink:#16202E; --muted:#5A6678; --line:#D6DDE8; --line-soft:#E8ECF3;
+  --accent:#0B6E8A; --accent-soft:#DCEEF4; --pre:#C2670A; --next:#2E7D32;
+  --ok:#2E7D5B; --warn:#B26B00; --warn-soft:#FBEBD0; --bad:#C23A3A; --bad-soft:#F9DEDE;
+  --todo:#8794A8; --meeting:#EBE4F7; --meeting-ink:#43346F; --meeting-edge:#7B5CC4; --free:#E9F4EC;
+  --f-body:"BIZ UDPGothic","Yu Gothic UI","Meiryo",sans-serif; --f-mono:ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1520; --surface:#162030; --ink:#E5EBF3; --muted:#9AA7B9; --line:#2A3850; --line-soft:#1F2C40;
+  --accent:#55B8D4; --accent-soft:#17323D; --pre:#E8963F; --next:#6CC070;
+  --ok:#5CC08F; --warn:#E3A94B; --warn-soft:#3A2D14; --bad:#EE7B7B; --bad-soft:#3B1D1F;
+  --todo:#7B889C; --meeting:#2D2548; --meeting-ink:#D3C9F0; --meeting-edge:#9C84E0; --free:#14301F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1520; --surface:#162030; --ink:#E5EBF3; --muted:#9AA7B9; --line:#2A3850; --line-soft:#1F2C40;
+  --accent:#55B8D4; --accent-soft:#17323D; --pre:#E8963F; --next:#6CC070;
+  --ok:#5CC08F; --warn:#E3A94B; --warn-soft:#3A2D14; --bad:#EE7B7B; --bad-soft:#3B1D1F;
+  --todo:#7B889C; --meeting:#2D2548; --meeting-ink:#D3C9F0; --meeting-edge:#9C84E0; --free:#14301F; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
+*{box-sizing:border-box}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+header.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;justify-content:space-between}
+/* ヘッダーと「今日の優先」は、スクロールしても上端に固定する。ヘッダーの高さは --hh（app.js が測る）で、固定の帯と「今日の優先」の位置に使う */
+header.top{position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0;margin-block:-8px 0}
+/* プロジェクト画面のフィルタ行は、ヘッダーの下に固定する。高さは --th（app.js が測る） */
+.toolbar.ptool{position:sticky;top:var(--hh,0px);z-index:9;background:var(--bg);padding:6px 0 10px;margin-bottom:0}
+.cols>.side{position:sticky;top:calc(var(--hh,0px) + var(--th,0px) + 8px);align-self:start;max-height:calc(100vh - var(--hh,0px) - var(--th,0px) - 24px);overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+h1{font-size:18px;margin:0;font-weight:700;letter-spacing:.01em}
+.today{color:var(--muted);font-size:13px}
+nav[role=tablist]{display:flex;gap:2px;background:var(--line-soft);padding:3px;border-radius:8px}
+nav button{font:inherit;border:0;background:transparent;color:var(--muted);padding:6px 14px;border-radius:6px;cursor:pointer}
+nav button[aria-selected=true]{background:var(--surface);color:var(--ink);font-weight:700;box-shadow:0 1px 2px rgba(20,30,50,.12)}
+button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+h2{font-size:14px;margin:0 0 10px;font-weight:700}
+details.fold>summary,details.subfold>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;border-radius:6px}
+details.fold>summary::-webkit-details-marker,details.subfold>summary::-webkit-details-marker{display:none}
+details.fold>summary::before,details.subfold>summary::before{content:"▸";color:var(--muted);width:1em;flex:none}
+details.fold[open]>summary::before,details.subfold[open]>summary::before{content:"▾"}
+details.fold>summary:focus-visible,details.subfold>summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+details.fold>summary h2,details.subfold>summary h3{margin:0}
+details.fold>summary .note,details.subfold>summary .note{margin-left:4px}
+details.fold[open]>summary{margin-bottom:10px}
+details.subfold>summary h3{font-size:13px;font-weight:700}
+details.subfold[open]>summary{margin-bottom:8px}
+.subfolds{display:flex;flex-direction:column;gap:14px}
+details.subfold{border-top:1px solid var(--line-soft);padding-top:10px}
+.muted{color:var(--muted)}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px}
+@media(max-width:860px){.cols{grid-template-columns:minmax(0,1fr)}}
+/* 状態の見た目（LED のようなドット） */
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none;vertical-align:baseline}
+.s-todo{border:2px solid var(--todo);background:transparent}
+.s-prog{background:var(--accent)}
+.s-wait{background:var(--warn-soft);border:2px solid var(--warn)}
+.s-done{background:var(--ok);opacity:.55}
+.s-cancel{background:var(--todo);opacity:.4}
+.is-late{box-shadow:0 0 0 3px var(--bad-soft);border-color:var(--bad)!important}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:1px 9px;border-radius:99px;font-size:12px;border:1px solid var(--line);white-space:nowrap}
+.pill.late{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.pill.wait{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.pill.ok{color:var(--ok)}
+/* 俯瞰タイムライン */
+.proj-name{font-weight:700;line-height:1.35;display:block;background:none;border:0;padding:0;font-family:inherit;font-size:14px;color:var(--ink);text-align:left;cursor:pointer}
+.proj-name:hover{color:var(--accent)}
+.proj-meta{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:4px;font-size:12px;color:var(--muted);align-items:center}
+.todayline{position:absolute;top:0;bottom:0;width:0;border-left:2px solid var(--bad);z-index:2}
+.todaytag{position:absolute;top:-2px;font-size:11px;color:var(--bad);transform:translateX(-50%);background:var(--surface);padding:0 4px;z-index:3}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted);margin-top:12px}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+/* 優先リスト */
+.rank{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.rank li{padding:10px 0;border-bottom:1px solid var(--line-soft);display:grid;grid-template-columns:22px minmax(0,1fr);gap:4px 8px}
+.rank li:last-child{border-bottom:0}
+.rank .n{font-family:var(--f-mono);color:var(--muted);font-size:12px;padding-top:2px;grid-row:1/3}
+.rank .pj{grid-column:2;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.02em;overflow-wrap:anywhere}
+.rank .pj:empty{display:none}
+.rank .t{font-weight:700;line-height:1.4;overflow-wrap:anywhere}
+.rank .why{grid-column:2;color:var(--muted);font-size:12px;line-height:1.5}
+.rank .act{display:inline-block;font-size:11px;padding:0 6px;border-radius:4px;background:var(--warn-soft);color:var(--warn);margin-right:6px}
+.rank li[data-pick]{cursor:pointer;border-radius:6px}
+.rank .t .pill{vertical-align:1px}
+.rank .bb{display:flex;flex-direction:row;gap:6px;flex-wrap:wrap}
+.rank .bb .btn{padding:0 10px;font-size:12px}
+.rank.tl li{grid-template-columns:minmax(0,1fr)}
+.rank.tl .pj,.rank.tl .why,.rank.tl .bb,.rank.tl .ask{grid-column:1}
+.rank li.closed{opacity:.55}
+.blk .stt{font-size:11px;opacity:.85;margin-left:4px}
+.rank li.picked{background:var(--accent-soft);outline:2px solid var(--accent);outline-offset:-2px}
+/* テーブル */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{font-weight:400;color:var(--muted);text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:9px 10px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .id{font-family:var(--f-mono);color:var(--muted);font-size:12px;white-space:nowrap}
+.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.log li{display:grid;grid-template-columns:76px minmax(0,1fr);gap:8px}
+.log .d{font-family:var(--f-mono);font-size:12px;color:var(--muted);padding-top:2px}
+.phead{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:flex-end;justify-content:space-between;margin-bottom:12px}
+.phead h2{font-size:17px;margin:0}
+.kv{display:flex;gap:20px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.kv b{color:var(--ink);font-weight:700}
+/* 日・週カレンダー */
+.cal{position:relative;--calh:clamp(340px,calc(100vh - 400px),1000px);--calh:clamp(340px,calc(100dvh - 400px),1000px)}
+.cal.wk{--calh:clamp(340px,calc(100vh - 500px),1000px);--calh:clamp(340px,calc(100dvh - 500px),1000px)}
+.cal-grid{position:relative;height:var(--calh)}
+.hour{position:absolute;left:0;right:0;border-top:1px solid var(--line-soft);font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.hour span{position:absolute;left:0;top:-9px;background:var(--surface);padding-right:4px}
+.cal-body{position:absolute;left:44px;right:0;top:0;bottom:0}
+.blk{position:absolute;left:2px;right:2px;border-radius:5px;padding:2px 6px;font-size:12px;line-height:1.35;overflow:hidden}
+.blk.mtg{background:var(--meeting);color:var(--meeting-ink)}
+.blk.task{background:var(--accent-soft);color:var(--ink);border:1px solid var(--accent);border-left-width:4px}
+.blk .tm{font-family:var(--f-mono);font-size:10px;opacity:.8;display:block}
+.week .blk .tm{white-space:nowrap}
+button.free{position:absolute;left:2px;right:2px;border:1px dashed var(--ok);background:var(--free);border-radius:5px;color:var(--ok);font:inherit;font-size:12px;cursor:default;padding:0 6px;text-align:left}
+body.picking button.free{cursor:copy}
+body.picking button.free:hover{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.summary{display:flex;flex-wrap:wrap;gap:6px 20px;margin-bottom:12px;color:var(--muted);font-size:13px}
+.summary b{color:var(--ink)}
+.week{display:grid;grid-template-columns:44px repeat(7,minmax(120px,1fr));min-width:44px}
+.week .dh{padding:6px 6px 8px;border-bottom:1px solid var(--line);font-size:13px}
+.week .dh small{display:block;color:var(--muted);font-size:11px}
+.week .dh.t{color:var(--accent);font-weight:700}
+.week .col{position:relative;border-left:1px solid var(--line-soft);height:var(--calh)}
+.week .col.today{background:linear-gradient(var(--accent-soft),var(--accent-soft));background-blend-mode:normal}
+.week .col.weekend{background:var(--line-soft);opacity:.55}
+.week .hrs{position:relative;height:var(--calh)}
+.week .blk{left:3px;right:3px;font-size:11px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:20}
+.note{font-size:12px;color:var(--muted)}
+.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:5px 12px;border-radius:6px;cursor:pointer}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+@media (prefers-reduced-motion: no-preference){.panel{animation:none}}
+
+.chip-btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:4px 12px;border-radius:99px;cursor:pointer}
+.chip-btn[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:700}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.gantt{min-width:640px;padding-right:44px}
+.g-row{display:grid;grid-template-columns:230px minmax(0,1fr);gap:12px;align-items:center;border-bottom:1px solid var(--line-soft)}
+.g-row:last-child{border-bottom:0}
+.g-head{border-bottom:1px solid var(--line)}
+.g-label{display:grid;grid-template-columns:28px minmax(0,1fr);gap:0 6px;padding:5px 0;font-size:13px;line-height:1.35}
+.g-label .id{font-family:var(--f-mono);font-size:11px;color:var(--muted);padding-top:2px}
+.g-label .g-pre{grid-column:2;font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.g-lane{position:relative;height:36px}
+.g-axis{height:24px}
+.g-axis span{position:absolute;top:0;font-size:11px;color:var(--muted);padding-left:4px;border-left:1px solid var(--line-soft);height:24px}
+.g-axis .ms{top:12px}
+.gl{position:absolute;top:0;bottom:0;border-left:1px solid var(--line-soft)}
+.gbar{position:absolute;top:9px;height:18px;border-radius:4px}
+.b-todo{border:2px solid var(--todo);background:transparent}
+.b-prog{background:var(--accent)}
+.b-wait{background:var(--warn-soft);border:2px solid var(--warn)}
+.b-done{background:var(--ok);opacity:.5}
+.b-cancel{background:var(--todo);opacity:.35}
+.g-due{position:absolute;top:10px;margin-left:8px;font-size:11px;color:var(--muted)}
+.g-lane .mk{position:absolute;top:13px;transform:translateX(-50%)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg button{font:inherit;font-size:13px;background:var(--surface);color:var(--muted);border:0;padding:4px 14px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.in{font:inherit;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:4px 8px;width:100%;min-width:0}
+.in.sm{width:auto}
+.in.gi{width:7em}
+.tscroll{overflow-x:auto}
+/* 列見出しは、スクロール中も上端に付ける。リストは、表を包む枠の先頭の複製で固定する（下の「固定表示」の節）。設定・稼働の表は、sticky が効かないので、app.js の pinTableHeads が見出しのセルをずらす */
+.tbl.edit thead th{position:relative;z-index:2;background:var(--surface);box-shadow:inset 0 -1px 0 var(--line)}
+.hrs{background:var(--accent-soft);color:var(--ink);border-radius:4px;padding:0 8px}
+.wl-tbl .num{text-align:right;white-space:nowrap}
+.wl-tbl tfoot td{font-weight:700;border-top:1px solid var(--line)}
+.wl-bar{display:flex;height:12px;min-width:2px}
+.wl-bar .t,.sw.wl-t{background:var(--ok)}
+.wl-bar .m,.sw.wl-m{background:var(--meeting-edge)}
+.wl-bar.un{opacity:.6}
+.wl .banner{margin-top:14px}
+.tbl.edit td[data-l="件名"] .in{min-width:13em}
+.tbl.edit td[data-l="状態"] select{min-width:7em}
+.tbl.edit td[data-l="待ち先"] .in{min-width:6em}
+.in:disabled{background:transparent;border-color:transparent;color:var(--muted)}
+.tbl.edit{min-width:860px}
+.tbl.edit td{vertical-align:top}
+.chips{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.chip{display:inline-flex;gap:2px;align-items:center;font-family:var(--f-mono);font-size:12px;background:var(--line-soft);border-radius:5px;padding:1px 2px 1px 7px}
+.chip button{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 4px}
+.chip button:hover{color:var(--bad)}
+.ask{font-size:12px;color:var(--bad);max-width:190px}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.ghost{position:absolute;left:2px;right:2px;border:2px dashed var(--accent);background:var(--accent-soft);border-radius:5px;font-size:12px;padding:2px 6px;color:var(--accent);pointer-events:none;z-index:5}
+#dragtip{position:fixed;z-index:15;background:var(--ink);color:var(--bg);padding:3px 8px;border-radius:6px;font-size:12px;font-family:var(--f-mono);pointer-events:none;white-space:nowrap}
+.ghost.ng{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+.rank li[draggable=true]{cursor:grab}
+.blk.task[draggable=true]{cursor:grab}
+label{font-size:13px}
+.pg{padding:6px 0 14px;border-bottom:1px solid var(--line)}.pg:first-child{padding-top:0}.pg:last-of-type{border-bottom:0}
+
+.gtools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.gtop{position:sticky;top:calc(var(--hh,0px) + var(--th,0px));z-index:8;background:var(--surface);padding:6px 0 8px;margin-bottom:6px;border-bottom:1px solid var(--line-soft)}
+.gtop .gtools{margin-bottom:6px}
+.gtop .legend{margin-top:0}
+.gscroll{position:relative;padding-bottom:6px}
+.gwide{min-width:100%}
+.g-row{display:flex;gap:12px;align-items:stretch;border-bottom:1px solid var(--line-soft)}
+.g-label{position:sticky;left:0;z-index:4;flex:none;width:230px;background:var(--surface)}
+.g-lane{flex:none}
+/* 重要度: 高は左端に太い赤の縦線と、行の薄い赤の背景。縦線は横スクロールで流れないよう、固定のラベルに付ける */
+.g-row>.g-label{padding-left:9px}
+.mv{cursor:grab;color:var(--muted);user-select:none;margin-right:4px}
+.mv:hover{color:var(--ink)}
+tr.drop-before>td,.g-row.drop-before>.g-label,.g-row.drop-before>.g-lane{box-shadow:inset 0 2px 0 var(--accent)}
+tr.drop-after>td,.g-row.drop-after>.g-label,.g-row.drop-after>.g-lane{box-shadow:inset 0 -2px 0 var(--accent)}
+.g-label.imp-high::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--bad)}
+.g-label.imp-high{background:var(--bad-soft)}
+.g-row:has(>.g-label.imp-high){background:var(--bad-soft)} /* :has() 非対応のブラウザでも、上の規則（ラベル）が捨てられないよう、分ける */
+.imp-key{display:inline-block;height:12px;margin-right:6px;vertical-align:middle}
+.imp-key.hi{width:5px;background:var(--bad)}
+.g-head{border-bottom:1px solid var(--line);position:relative;z-index:6;background:var(--surface)} /* 日付軸は、下の「固定表示」の節で、枠の外の複製（.gstrip）を sticky にして固定する */
+.g-axis{height:24px;position:relative}
+.g-axis span.yr{font-weight:700;color:var(--ink);border-left-color:var(--ink)}
+.gl.yr{border-left:1px solid var(--muted)}
+.pg{padding:8px 0 18px}
+.pg-head{position:sticky;left:0;width:var(--vw,100%);display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:6px;z-index:5}
+.gscroll{--vw:100%}
+.g-sumrow .g-lane{height:28px}
+.gsum{top:8px;height:12px;background:var(--line);border-radius:3px;overflow:hidden}
+.gsum u{position:absolute;left:0;top:0;bottom:0;background:var(--ok);opacity:.6;text-decoration:none}
+.g-sumrow .gbar{top:8px}
+.g-due{position:absolute;top:10px;margin-left:8px;font-size:11px;color:var(--muted);white-space:nowrap}
+@media(max-width:640px){.g-row{display:flex}}
+
+/* 幅は画面サイズに追従(全画面で統一) */
+.wrap{max-width:none}
+.cols{grid-template-columns:minmax(0,1fr) 14px clamp(260px,22vw,340px)}
+.toolbar{display:flex;gap:10px 16px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cols>.panel>.toolbar{margin-bottom:10px}
+.gscroll{container-type:inline-size;--lw:230px;overflow-x:auto;padding-bottom:6px}
+@media(max-width:640px){.gscroll{--lw:112px}.g-label{font-size:12px}}
+.gwide{width:max-content;min-width:100%}
+.g-label{width:var(--lw)}
+.pg-head{width:100cqw}
+.g-lane{min-width:0}
+.week{grid-template-columns:44px repeat(7,minmax(0,1fr))}
+.week .dh{font:inherit;background:transparent;border:0;border-bottom:1px solid var(--line);text-align:left;cursor:pointer;color:var(--ink);min-width:0}
+.week .dh:hover{background:var(--accent-soft)}
+.week .blk{overflow:hidden;text-overflow:ellipsis}
+.duecell{padding:6px;border-left:1px solid var(--line-soft);font-size:12px;min-height:34px;min-width:0;overflow-wrap:anywhere}
+.cal{min-width:0}
+.tbl.edit{min-width:0;table-layout:auto}
+@media(max-width:860px){
+  .tbl.edit thead{display:none}
+  .tbl.edit tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px;padding:10px 0;border-bottom:1px solid var(--line-soft)}
+  .tbl.edit td{display:block;padding:0;border:0}
+  .tbl.edit td::before{content:attr(data-l);display:block;font-size:11px;color:var(--muted)}
+  .tbl.edit td[data-l=""]::before,.tbl.edit td[data-l="ID"]::before{display:none}
+  .tbl.edit td:nth-child(4),.tbl.edit td:nth-child(11){grid-column:1/-1}
+  #view .tbl.edit tr.ck-tr>td{grid-column:1/-1;padding-left:0} /* チェックリストの展開行は全幅 */
+}
+
+.g-lane .gbar{top:6px;height:14px}
+.g-lane .gbar.gsum{top:8px;height:12px}
+.gact{position:absolute;top:23px;height:5px;border-radius:3px;background:var(--ok)}
+.mslist{display:flex;flex-direction:column;gap:6px}
+.msrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.msrow .in:first-child{flex:1 1 200px;width:auto}
+.blk.task{padding-bottom:6px}
+.blk.task.plan{background:var(--accent-soft);border:1px solid var(--accent);border-left-width:4px}
+.blk.task.act{background:color-mix(in srgb,var(--ok) 22%,var(--surface));border:1px solid var(--ok);border-left-width:4px}
+.blk.task.unconf{background:var(--warn-soft);border:1px dashed var(--warn);border-left:4px dashed var(--warn)}
+.blk .bb{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
+.blk .bb .btn{padding:0 6px;font-size:11px}
+.blk .rz{position:absolute;left:0;right:0;bottom:0;height:6px;cursor:ns-resize}
+.blk .rz::after{content:"";position:absolute;left:50%;bottom:2px;width:16px;height:2px;margin-left:-8px;border-radius:1px;background:currentColor;opacity:.35}
+.nowline{position:absolute;left:0;right:0;height:0;border-top:2px solid var(--bad);z-index:6;pointer-events:none}
+
+.g-label{grid-template-columns:28px minmax(0,1fr) auto}
+.g-label .g-pre{grid-column:2/-1}
+.g-label[data-mvrow]{grid-template-columns:auto 28px minmax(0,1fr) auto} /* 先頭の列は「⠿」 */
+.g-label[data-mvrow] .g-pre{grid-column:3/-1}
+.g-name{font:inherit;font-size:13px;text-align:left;background:none;border:0;padding:0;color:var(--ink);cursor:pointer;line-height:1.35;overflow-wrap:anywhere}
+.g-name:hover{color:var(--accent);text-decoration:underline}
+.gx{font:inherit;border:0;background:transparent;color:var(--muted);cursor:pointer;padding:0 4px;opacity:0;line-height:1}
+.g-row:hover .gx,.gx:focus-visible{opacity:1}
+.gx:hover{color:var(--bad)}
+.gdrag{cursor:grab}
+.gh{position:absolute;top:0;bottom:0;width:8px;cursor:ew-resize;z-index:3}
+.gh.l{left:-2px}.gh.r{right:-2px}
+.gsum .gh{width:7px}.gsum .gh.l{left:0}.gsum .gh.r{right:0}
+.gbar:hover .gh::after,.gsum:hover .gh::after{content:"";position:absolute;top:3px;bottom:3px;left:3px;width:2px;border-radius:1px;background:currentColor;opacity:.55}
+.ms{cursor:ew-resize}
+tr.hl{outline:2px solid var(--accent);outline-offset:-2px;background:var(--accent-soft)}
+tr.hl td{transition:background .3s}
+.tbl.edit td[data-l="開始"] small{font-size:11px}
+
+.g-lane .ms{position:absolute;transform:translateX(-50%) rotate(45deg);width:11px;height:11px;background:var(--ink);opacity:.9;cursor:ew-resize;z-index:3}
+.g-lane .ms-l{position:absolute;transform:translateX(10px);font-size:11px;line-height:1.3;color:var(--ink);white-space:nowrap;pointer-events:none;z-index:3}
+.g-lane .msl{position:absolute;top:0;bottom:0;border-left:1px dashed var(--ink);opacity:.3;pointer-events:none}
+.g-msrow .g-lane{height:44px}
+.gwk{position:absolute;top:0;bottom:0;background:var(--line-soft);opacity:.7;pointer-events:none}
+.g-axis.day{height:34px}
+.g-axis.day span{line-height:1.15;font-size:11px;text-align:center;min-width:0}
+.g-axis.day span small{display:block;font-size:10px;color:var(--muted)}
+.g-axis.day span.tdy{color:var(--bad);font-weight:700;border-left-color:var(--bad)}
+.g-axis.day span.tdy small{color:var(--bad)}
+.legend .ms{background:var(--ink);opacity:.9}
+
+.blk.task.sel{outline:2px solid var(--ink);outline-offset:1px;z-index:4}
+.blk.task:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.blk.task{cursor:grab}
+.slegend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12px;color:var(--muted);margin-top:12px}
+.slegend span{display:inline-flex;align-items:center}
+.sw{display:inline-block;width:20px;height:12px;border-radius:3px;margin-right:6px}
+.sw.mtg{background:var(--meeting)}
+.sw.mtgun{background:var(--meeting);border:1px dashed var(--meeting-edge)}
+.blk.mtg.unconf{border-left:4px dashed var(--meeting-edge)}
+.blk .mp{display:block;font-size:11px;opacity:.85}
+.sw.plan{background:var(--accent-soft);border:1px solid var(--accent);border-left-width:4px}
+.sw.act{background:color-mix(in srgb,var(--ok) 22%,var(--surface));border:1px solid var(--ok);border-left-width:4px}
+.sw.unconf{background:var(--warn-soft);border:1px dashed var(--warn);border-left:4px dashed var(--warn)}
+.sw.free{background:var(--free);border:1px dashed var(--ok)}
+.sw.now{height:0;border-radius:0;border-top:2px solid var(--bad)}
+.sw.sel{background:transparent;outline:2px solid var(--ink);outline-offset:-1px}
+.btn:disabled{opacity:.5;cursor:default;border-color:var(--line);color:var(--muted)}
+
+.blk.mtg{cursor:pointer}
+.blk.mtg.skip{opacity:.6;background:transparent;border:1px dashed var(--muted);text-decoration:line-through}
+.blk.mtg.sel{outline:2px solid var(--ink);outline-offset:1px;z-index:4}
+.blk.mtg:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.mtgform{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:flex-end;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);margin-bottom:12px}
+.mtgform label{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted)}
+.mtgform label.chk{flex-direction:row;align-items:center;gap:6px;color:var(--ink);font-size:13px}
+.mtgform .in:disabled{background:var(--line-soft);color:var(--muted);border-color:var(--line)}
+.sw.skipsw{background:transparent;border:1px dashed var(--muted)}
+.blk.mtg.skip{right:auto;width:46%;z-index:3;background:var(--surface)}
+
+.blk.mtg{border-left:4px solid var(--meeting-edge)}
+.sw.mtg{background:var(--meeting);border-left:4px solid var(--meeting-edge)}
+.blk.mtg[draggable=true]{cursor:grab}
+.blk.task,.blk.mtg{min-height:16px}
+.hour{height:0}
+
+/* ガントの罫線・今日の線は、プロジェクトごとに 1 枚の重ね板で描く(行ごとに描くと要素数が膨らむため) */
+.gbody{position:relative}
+.gov{position:absolute;top:0;bottom:0;left:calc(var(--lw) + 12px);width:var(--lanew);pointer-events:none}
+.gov.under{z-index:0}
+.gov.over{z-index:2}
+.gov .msl{position:absolute;top:0;bottom:0;border-left:1px dashed var(--ink);opacity:.3}
+.g-lane{width:var(--lanew)}
+
+.filebar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fsep{width:1px;align-self:stretch;background:var(--line)}
+.chip-btn.pref[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:400}
+.cols.one{grid-template-columns:minmax(0,1fr) 14px}
+/* 右の列の開け閉めの取っ手。本体と右の列の境界線に置き、閉じても残る。900px 以下で列が 1 つに回り込むときは、横長の細い帯になる */
+.side-toggle{position:sticky;top:calc(var(--hh,0px) + var(--th,0px) + 8px);align-self:start;width:14px;height:64px;padding:0;border:1px solid var(--line);border-radius:4px;background:var(--line-soft);color:var(--muted);font:inherit;font-size:12px;line-height:1;cursor:pointer}
+.side-toggle:hover,.side-toggle:focus-visible{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+@media(max-width:900px){.cols,.cols.one{grid-template-columns:minmax(0,1fr)}.side-toggle{position:static;width:100%;height:20px}}
+.note.err{color:var(--bad)}
+.btn.warm{background:var(--warn-soft);border-color:var(--warn);color:var(--ink);font-weight:700}
+.btn.warm:hover{border-color:var(--warn);color:var(--ink);filter:brightness(.95)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.g-row.g-grp{background:var(--line-soft);min-height:26px;align-items:center}
+.g-row.g-grp .g-label{background:var(--line-soft)}
+.g-grp-t{grid-column:1/-1;font-size:12px;padding-left:6px}
+.g-row.g-grp .g-label{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+.g-row.g-grp .g-grp-t{flex:1;min-width:0}
+.g-row.g-grp .g-label .in{flex:1 1 100%;order:3}
+.plus{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--surface);color:var(--accent);border-radius:6px;padding:1px 9px;cursor:pointer;flex:none}
+.plus:hover{border-color:var(--accent)}
+.tbl .grp-tr td{background:var(--line-soft);font-size:12px;padding:5px 10px;vertical-align:middle}
+.pfilter{display:inline-flex;align-items:center;gap:6px;margin-left:8px;font-size:12px;color:var(--muted)}
+.banner{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:13px}
+code{font-family:var(--f-mono);font-size:12px;background:var(--line-soft);padding:0 4px;border-radius:3px}
+
+/* 狭い画面では、週表示のカレンダーの中だけを横スクロールにする(ページ全体は横スクロールさせない) */
+.cal.wk{overflow-x:auto}
+.cal.wk .week{min-width:560px}
+
+/* 画面下端の「Claude Code に依頼する」の帯と引き出し（帯は常に出し、引き出しは開いたときだけ） */
+body{padding-block:16px 76px}
+.toast{bottom:72px}
+.ib{position:fixed;left:0;right:0;bottom:0;z-index:40;background:#16202E;color:#E5EBF3;box-shadow:0 -4px 14px rgba(20,30,50,.18)}
+.ib.open{background:var(--surface);color:var(--ink);border-top:1px solid var(--line);border-radius:14px 14px 0 0;box-shadow:0 -10px 30px rgba(20,30,50,.28)}
+.ib-bar{display:flex;align-items:center;gap:12px;height:52px;box-sizing:border-box;padding:0 max(16px,env(safe-area-inset-left,0px));flex-wrap:nowrap;overflow:hidden}
+.ib.open .ib-bar{border-bottom:1px solid var(--line-soft)}
+.ib-toggle{font:inherit;font-size:12px;cursor:pointer;border:1px solid #55B8D4;background:transparent;color:#55B8D4;border-radius:6px;padding:0 10px;line-height:24px;white-space:nowrap}
+.ib.open .ib-toggle{border-color:var(--accent);color:var(--accent)}
+.ib-hint{font-size:12px;color:#9AA7B9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ib-sp{flex:1 1 0}
+.ib-badge{font-size:12px;background:var(--warn-soft);color:var(--warn);border-radius:99px;padding:2px 12px;white-space:nowrap}
+.ib-state{font-size:12px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;color:#9AA7B9}
+.ib.open .ib-state{color:var(--muted)}
+.ib-state i{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--bad)}
+.ib-state.on i{background:var(--ok)}
+.ib-off .ib-hint{white-space:normal}
+.ib-drawer{max-height:min(68vh,640px);overflow:auto;padding:14px max(16px,env(safe-area-inset-left,0px)) 18px}
+.ib-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:24px;align-items:start}
+@media(max-width:900px){.ib-body{grid-template-columns:minmax(0,1fr)}.ib-hint{display:none}}
+.ib-compose{display:flex;flex-direction:column;gap:8px}
+.ib-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px}
+.ib-ex{font:inherit;font-size:12px;border:1px dashed var(--muted);background:var(--surface);color:var(--ink);border-radius:99px;padding:3px 12px;cursor:pointer}
+.ib-note{border:1px solid var(--warn-soft);background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:12px;line-height:1.6}
+.ib-reqs{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+.ib-req{border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.ib-rh{display:flex;gap:10px;align-items:center;font-size:12px;flex-wrap:wrap}
+.ib-rt{font-size:13px;margin-top:2px;overflow-wrap:anywhere}
+.ib-card{margin-top:8px;border-top:1px solid var(--line-soft);padding-top:8px;display:flex;flex-direction:column;gap:10px;font-size:13px}
+.ib-msg{font-size:13px;overflow-wrap:anywhere}
+.ib-sec b{font-size:13px}
+.ib-warn{background:var(--warn-soft);color:var(--warn);border-radius:6px;padding:6px 10px;font-size:12px}
+.ib-ctl{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.ib-ctl label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+.ib-act{display:flex;gap:8px;flex-wrap:wrap}
+.pill.warn{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.pill.bad{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.pill.done{background:var(--free);color:var(--ok);border-color:transparent}
+.pill.off{color:var(--muted)}
+
+/* 前のタスクの線と強調(deps.js)。線は gbody に重ねる。強調は、バーにマウスを置いたとき */
+.gdeps{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;overflow:visible}
+.gdep path{fill:none;stroke:var(--muted);stroke-width:.8;opacity:.5}
+.gdep polygon{fill:var(--muted);opacity:.5}
+.gbody.dep-hide .gdeps{display:none}
+.gbody.dep-focus .gdep{opacity:.25}
+.gbody.dep-focus .gdep.dep-on,.gbody.dep-focus .gdep.dep-out{opacity:1}
+.gbody.dep-focus .gdep.dep-on path{stroke:var(--pre);stroke-width:1.8;opacity:1}
+.gbody.dep-focus .gdep.dep-on polygon{fill:var(--pre);opacity:1}
+.gbody.dep-focus .gdep.dep-out path{stroke:var(--next);stroke-width:1.8;opacity:1}
+.gbody.dep-focus .gdep.dep-out polygon{fill:var(--next);opacity:1}
+.gbody.dep-focus [data-gt]:not(.dep-self):not(.dep-pre):not(.dep-next){opacity:.35}
+.gbody [data-gt].dep-self{background:var(--accent)!important}
+.gbody [data-gt].dep-pre{background:var(--pre)!important}
+.gbody [data-gt].dep-next{background:var(--next)!important}
+/* ガントチャートの編集の窓(タスク名・バーのクリックで開く)。クリックした位置の近くに固定で置く */
+.tpop{position:fixed;z-index:30;width:320px;max-width:calc(100vw - 16px);max-height:calc(100vh - 72px);overflow:auto;box-sizing:border-box;background:var(--surface);border:1px solid var(--accent);border-radius:8px;padding:10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:8px}
+.tpop .tp-h{display:flex;align-items:center;gap:8px}
+.tpop .tp-h .muted{flex:1;font-size:12px}
+.tpop .tp-f{display:flex;flex-direction:column;gap:2px;font-size:12px}
+.tpop .tp-f .in{width:100%;box-sizing:border-box;min-width:0}
+.tpop .tp-r{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.tpop .tp-a{display:flex;gap:8px;justify-content:space-between}
+
+/* 固定表示（ガント・リスト）: 画面のスクロールに対して、CSS の sticky で付ける */
+#view{overflow-anchor:none} /* 描き直しのたびに、ブラウザのスクロール位置の補正(スクロールアンカー)で縦の位置が数 px ずれるのを防ぐ。位置は render が戻す */
+#view .gprojects{display:block}
+#view .ptool{display:flex;flex-wrap:nowrap;align-items:center;gap:8px}
+#view .ptool .chips-row{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;flex:1 1 auto;min-width:0;scrollbar-width:none} /* 1 行に収めて横にスクロールする(プロジェクトが何件でも、固定の行の高さが変わらない) */
+#view .ptool .chips-row::-webkit-scrollbar{display:none} /* スクロールバーを出すと、固定の行が 15px 高くなる(プロジェクトの数で高さが変わる)。縦のホイール・横スワイプ・Tab で動かす */
+#view .ptool .chips-row .chip-btn{flex:none;white-space:nowrap}
+#view .ptool .ptool-end{display:flex;flex:none;align-items:center;gap:8px}
+#view .pgstick{position:sticky;top:calc(var(--hh,0px) + var(--th,0px) + var(--gh,0px));z-index:7;background:var(--surface)} /* プロジェクトの見出し。枠(.gscroll)の外に置くので、画面の縦スクロールで留まり、次のプロジェクトに入ると入れ替わる。--gh は操作の帯(.gtop)の高さ */
+#view .pg-head{position:static;width:auto;background:var(--surface);padding:2px 0 6px;margin-bottom:0} /* 見出しは枠の外なので、横の sticky も幅の指定も要らない。すきまを作らない(padding-bottom) */
+#view .gscroll{overflow-x:auto;overflow-y:hidden} /* 枠は横だけにスクロールする。縦はページが動く */
+#view .g-head{position:relative;z-index:5} /* 日付軸の複製(.gstrip、z-index:6)より下に描く。同じ値だと、境目で本物が複製の上に描かれ、目盛りが見出しの下へ滑り込む */
+#view .gwrap{padding-bottom:calc(var(--sh,0px) + var(--sb,0px))} /* 複製の高さ(--sh)だけ、sticky の範囲を短くする。枠はその分はみ出して、全体の高さは変わらない */
+#view .gwrap > .gscroll{margin-bottom:calc(-1 * (var(--sh,0px) + var(--sb,0px)))}
+#view .gstrip{position:sticky;top:calc(var(--hh,0px) + var(--th,0px) + var(--gh,0px) + var(--pgh,0px));z-index:6;display:flex;overflow:hidden;box-sizing:border-box;height:var(--sh,0px);margin-bottom:calc(-1 * var(--sh,0px));border-bottom:1px solid var(--line);background:var(--surface)} /* 日付軸の複製。app.js の syncGStrips が作る。固定していないときは、本物の日付軸に重なる */
+#view .gstrip:empty{display:none}
+#view .gstrip .gsl{flex:none;width:var(--lw);background:var(--surface)}
+#view .gstrip .gsv{flex:1 1 auto;min-width:0;overflow:hidden}
+#view .pstick{position:sticky;top:calc(var(--hh,0px) + var(--th,0px));z-index:6;background:var(--surface);padding:4px 0 6px} /* プロジェクトの見出し全体（名前・状態の行 + 種別〜稼働・注意の印の行）。列見出しの複製は、この下端に重なる */
+#view .pstick .prow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+#view .pstick .phead{margin:6px 0 0}
+#view .pstick h2{margin:0;font-size:17px}
+#view .pstick label{font-size:13px;color:var(--muted)}
+#view .twrap{padding-bottom:calc(var(--sh,0px) + var(--sb,0px))} /* 複製の高さ(--sh)だけ、sticky の範囲を短くする。表はその分はみ出して、全体の高さは変わらない */
+#view .twrap > .tscroll{margin-bottom:calc(-1 * (var(--sh,0px) + var(--sb,0px)))}
+#view .thstrip{position:sticky;top:calc(var(--hh,0px) + var(--th,0px) + var(--ph,0px));z-index:5;overflow:hidden;box-sizing:border-box;height:var(--sh,0px);margin-bottom:calc(-1 * var(--sh,0px));border-bottom:1px solid var(--line);background:var(--surface)} /* リストの列見出しの複製。app.js の syncThStrips が作る。固定していないときは、本物の列見出しに重なる。--ph は名前・状態の行(.pstick)の高さ */
+#view .thstrip:empty{display:none}
+#view .thstrip .thin{display:flex;white-space:nowrap}
+#view .thstrip .thc{flex:none;box-sizing:border-box;overflow:hidden;text-overflow:ellipsis;font-size:13px;color:var(--muted);text-align:left}
+/* ページの先頭でも、固定の行が、固定したときと同じ位置にあるようにする（スクロールの始めに、固定の行が数 px 動かない）。ガント・リスト（.ptool がある画面）とアプリだけ。ほかの画面は変えない */
+body:has(.ptool){padding-block-start:8px}
+.wrap:has(.ptool){gap:0}
+#banner:not(:empty){margin-block:8px}
+#view section.panel:has(> .gtop),#view section.panel:has(> .pstick){padding-top:0} /* カードの上の余白は、固定の行の中に持たせる（先頭でも固定したときと同じ位置にしつつ、カードの上端の線・角丸・余白は残す） */
+#view section.panel > .pstick{padding-top:20px}
+#view section.panel > .gtop{padding-top:22px}
+#view .cols>.side,#view .side-toggle{margin-top:8px}
+/* チェックリストの進み具合（細い線と「済み/全体」）。今日の優先・今日のタスク・ガントのラベルが使う */
+#view .ck-meter{display:flex;align-items:center;gap:6px}
+#view .ck-bar{display:block;width:72px;height:4px;border-radius:2px;background:var(--line);overflow:hidden;flex:none}
+#view .ck-bar i{display:block;height:100%;background:var(--accent)}
+#view .ck-n{font-size:11px;font-weight:400;color:var(--muted)}
+#view .ck-n.all{color:var(--ok)}
+#view .ck-meter:has(.ck-n.all) .ck-bar i{background:var(--ok)}
+#view .rank .ck-meter{grid-column:2}
+#view .rank.tl .ck-meter{grid-column:1}
+#view .g-label .ck-meter{grid-column:2/-1}
+#view .g-label[data-mvrow] .ck-meter{grid-column:3/-1} /* 画面のガントは 4 列（⠿・ID・名前・×）。名前の下に置く */
+/* ガントのバー: 済みの割合だけ濃く塗る（.gck）。残りは同じ色の薄い色。つまみ（.gh）は塗りより前に描くので、位置は変わらない */
+#view .gbar.ck{background:color-mix(in srgb,var(--accent) 35%,var(--surface))}
+#view .gbar.ck .gck{position:absolute;left:0;top:0;bottom:0;border-radius:4px 0 0 4px;background:var(--accent)}
+#view .gbar.ck.b-todo{background:transparent}
+#view .gbar.ck.b-todo .gck{background:var(--todo);opacity:.55}
+#view .gbar.ck.b-wait{background:var(--warn-soft)}
+#view .gbar.ck.b-wait .gck{background:var(--warn);opacity:.45}
+/* チェックリストの編集欄（リストの展開行・ガントの編集の窓）と、リストの「チェック」列のボタン */
+#view .ckedit{border:1px solid var(--accent-soft);background:var(--accent-soft);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:2px}
+#view .ck-head{display:flex;align-items:center;gap:8px;font-size:13px}
+#view .ck-row,#view .ck-add{display:flex;align-items:center;gap:6px;min-height:34px}
+#view .ck-row .in,#view .ck-add .in{flex:1;min-width:0}
+#view .ck-row .in.done{text-decoration:line-through;color:var(--muted)}
+#view .ck-row input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+#view .ck-add{border-top:1px dashed var(--line);margin-top:4px;padding-top:6px}
+#view .ck-tr>td{background:var(--accent-soft);padding-left:78px}
+#view .ck-tr .ckedit{max-width:640px;border:0;padding:0}
+#view .ck-toggle{font:inherit;font-size:12px;padding:2px 8px;min-height:28px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);cursor:pointer;white-space:nowrap}
+#view .ck-toggle.ck-empty{border-style:dashed;color:var(--muted)}
+#view .tpop .ckedit{margin-block:2px}
+#view .ck-row.drop-before{box-shadow:inset 0 2px 0 var(--accent)}
+#view .ck-row.drop-after{box-shadow:inset 0 -2px 0 var(--accent)}
+/* Done にするときのチェックリストの警告 */
+#view .ask.warn-ck{background:var(--warn-soft);border:1px solid var(--warn);border-radius:8px;padding:10px 12px}
+#view .ask.warn-ck b{color:var(--warn)}
+#view .ask.warn-ck ul{margin:6px 0;padding-left:18px}
+#view .ck-row .gx{opacity:1;position:static;min-width:32px;min-height:32px;color:var(--muted)}

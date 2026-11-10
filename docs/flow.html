@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>project-board の動きの流れ</title>
+<style>
+  :root {
+    --bg: #fafaf7; --fg: #222; --muted: #6b6b6b; --line: #d8d6cf;
+    --u-bg: #fff4d6; --u-line: #e0b74a;   /* あなた */
+    --c-bg: #e7f0ff; --c-line: #5b8def;   /* Claude */
+    --s-bg: #e9f5ea; --s-line: #5aa469;   /* スクリプト */
+    --write: #c43d3d; --ok: #2f7d4f; --warn: #b26a00; --stop: #7a4bb5;
+    --branch-bg: #f3f1ea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1c1c1a; --fg: #ececea; --muted: #a3a39d; --line: #3a3a36;
+      --u-bg: #3a3119; --u-line: #c9a53a; --c-bg: #1d2a44; --c-line: #6d9cff; --s-bg: #1f3324; --s-line: #6cc07d;
+      --write: #ff7b7b; --ok: #7fd49a; --warn: #f0b24a; --stop: #c39cf5; --branch-bg: #262621;
+    }
+  }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.6 system-ui, -apple-system, "Segoe UI", "Yu Gothic UI", sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 80px; }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  h2 { font-size: 18px; margin: 48px 0 8px; padding-top: 16px; border-top: 2px solid var(--line); }
+  h3 { font-size: 15px; margin: 28px 0 6px; color: var(--muted); }
+  p.lead { color: var(--muted); margin: 0 0 16px; }
+  nav ol { margin: 0; padding-left: 22px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 12px 0 0; align-items: center; }
+  .legend .lane { padding: 2px 10px; border-radius: 4px; border-left: 4px solid; }
+  .lane.u { background: var(--u-bg); border-color: var(--u-line); }
+  .lane.c { background: var(--c-bg); border-color: var(--c-line); }
+  .lane.s { background: var(--s-bg); border-color: var(--s-line); }
+
+  .flow { display: grid; grid-template-columns: 2.2em 1fr 1fr 1fr; gap: 6px 8px; align-items: stretch; }
+  .flow .head { position: sticky; top: 0; z-index: 2; background: var(--bg); font-weight: 600; padding: 6px 10px; border-bottom: 2px solid; border-radius: 4px 4px 0 0; }
+  .flow .head.u { border-color: var(--u-line); } .flow .head.c { border-color: var(--c-line); } .flow .head.s { border-color: var(--s-line); }
+  .n { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; padding-top: 8px; font-size: 12px; }
+  .cell { border-radius: 6px; padding: 8px 10px; border-left: 4px solid; min-height: 1.6em; }
+  .cell.u { background: var(--u-bg); border-color: var(--u-line); }
+  .cell.c { background: var(--c-bg); border-color: var(--c-line); }
+  .cell.s { background: var(--s-bg); border-color: var(--s-line); }
+  .cell.empty { border: 1px dashed var(--line); background: transparent; }
+  .cell ul { margin: 4px 0 0; padding-left: 18px; }
+  .cell li { margin: 2px 0; }
+  .src { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; font-family: ui-monospace, Consolas, monospace; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 0 6px; border-radius: 3px; margin-right: 4px; vertical-align: 1px; border: 1px solid; }
+  .tag.write { color: var(--write); border-color: var(--write); }
+  .tag.ok { color: var(--ok); border-color: var(--ok); }
+  .tag.warn { color: var(--warn); border-color: var(--warn); }
+  .tag.stop { color: var(--stop); border-color: var(--stop); }
+  .tag.unv { color: var(--muted); border-color: var(--muted); }
+
+  .branch { grid-column: 1 / -1; background: var(--branch-bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px 10px; margin: 2px 0 4px 2.2em; }
+  .branch > .bt { font-weight: 600; margin: 0 0 6px; color: var(--warn); }
+  .branch > .bt::before { content: "分岐 "; font-size: 11px; border: 1px solid var(--warn); border-radius: 3px; padding: 0 5px; margin-right: 6px; }
+  .branch .flow { grid-template-columns: 2.2em 1fr 1fr 1fr; }
+  .branch .flow .head { display: none; }
+  .branch .case { grid-column: 1 / -1; font-weight: 600; margin: 8px 0 0; padding-left: 2px; }
+  .branch .case::before { content: "▸ "; color: var(--muted); }
+  .note { grid-column: 1 / -1; margin: 4px 0 4px 2.2em; color: var(--muted); font-size: 13px; }
+  .arrow { grid-column: 1 / -1; text-align: center; color: var(--muted); line-height: 1; font-size: 12px; }
+  code { font-family: ui-monospace, Consolas, monospace; font-size: 12px; background: var(--branch-bg); padding: 0 4px; border-radius: 3px; }
+  @media (max-width: 760px) {
+    .flow { grid-template-columns: 2.2em 1fr; }
+    .flow .head { display: none; }
+    .cell.empty { display: none; }
+    .cell::before { font-size: 11px; color: var(--muted); display: block; }
+    .cell.u::before { content: "あなた"; } .cell.c::before { content: "Claude"; } .cell.s::before { content: "スクリプト"; }
+    .cell { grid-column: 2; }
+    .n { grid-row: span 1; }
+    .branch { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<main>
+<h1>project-board の動きの流れ</h1>
+<p class="lead">「思った動作と違わないか」を点検するための図です。5 本の流れを、3 つのレーン（あなたの操作・Claude の判断と会話・スクリプトの処理）で描いています。各マスの右下の小さい文字は、根拠のファイルです。</p>
+
+<div class="legend">
+  <span class="lane u">あなたの操作</span>
+  <span class="lane c">Claude の判断・会話</span>
+  <span class="lane s">スクリプトの処理（Node.js。Excel の読み取りだけ Python）</span>
+</div>
+<div class="legend" style="margin-top:8px">
+  <span><span class="tag write">書き込み</span>データファイルや設定を書く</span>
+  <span><span class="tag ok">承認</span>あなたの承認を待つ</span>
+  <span><span class="tag warn">注意</span>警告・案内を出して続ける</span>
+  <span><span class="tag stop">止まる</span>そこで処理を終える</span>
+  <span><span class="tag unv">未確認</span>実機で動かして確かめていない</span>
+</div>
+
+<nav style="margin-top:16px">
+  <ol>
+    <li><a href="#f1">初期設定（<code>/project-board:init</code>）</a></li>
+    <li><a href="#f2">予定表の接続設定（<code>/project-board:mcp</code>）</a></li>
+    <li><a href="#f3">取り込み（<code>/project-board:intake</code>）: Excel の作業一覧／予定表の会議／会議のキーワード規則</a></li>
+    <li><a href="#f4">見張り（<code>/project-board:watch</code>）と予定表の自動更新</a></li>
+    <li><a href="#f5">画面からの依頼（画面下端の帯「Claude Code に依頼する」）</a></li>
+    <li><a href="#f6">動作環境の診断（<code>/project-board:doctor</code>）</a></li>
+  </ol>
+  <p class="lead" style="margin-top:8px">用語: 「データファイル」= 作業フォルダの <code>.project-board/data.json</code>。「画面」= <code>project-board.html</code>。「設定フォルダ」= プラグイン専用の保存場所（<code>~/.claude/plugins/data/</code> の下）。「見張り」= 画面からの依頼を待ち受ける Claude Code の処理。</p>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="f1">1. 初期設定（<code>/project-board:init</code>）</h2>
+<p class="lead">作業フォルダに、画面とデータファイルを用意する。Claude は判断せず、スクリプトを 1 回動かして結果を伝えるだけ。</p>
+<div class="flow">
+  <div></div><div class="head u">あなた</div><div class="head c">Claude</div><div class="head s">スクリプト</div>
+
+  <div class="n">1</div>
+  <div class="cell u">管理したいフォルダで Claude Code を開き、<code>/project-board:init</code> を実行する。試用なら <code>--sample</code> を付ける。<small class="src">skills/init/SKILL.md</small></div>
+  <div class="cell c">初期設定のスクリプトを実行する（この指示は Claude が自分の判断で呼ぶことはできず、あなたのコマンドでだけ動く）。<small class="src">skills/init/SKILL.md（disable-model-invocation）</small></div>
+  <div class="cell empty"></div>
+
+  <div class="n">2</div>
+  <div class="cell empty"></div>
+  <div class="cell empty"></div>
+  <div class="cell s">作業フォルダに <code>project-board.html</code> があるか調べる。<small class="src">tools/init.js init()</small></div>
+
+  <div class="branch"><p class="bt">同じ名前のファイルが既にある</p><div class="flow">
+    <div class="case">project-board が作ったものではない（目印の <code>&lt;meta name="generator" content="project-board"&gt;</code> がない）</div>
+    <div class="n"></div><div class="cell empty"></div>
+    <div class="cell c">出力の理由をそのまま伝える。ファイルを作り直したり上書きしたりしない。<small class="src">skills/init/SKILL.md</small></div>
+    <div class="cell s"><span class="tag stop">止まる</span>何も書かずに終了コード 1。「既にあり、project-board が作ったものではないため、何も変更せずに止めました。名前を変えるか移動してから、もう一度実行してください」。<small class="src">tools/init.js MARKER</small></div>
+    <div class="case">project-board が作ったもの → 手順 3 へ進む</div>
+  </div></div>
+
+  <div class="n">3</div>
+  <div class="cell empty"></div>
+  <div class="cell empty"></div>
+  <div class="cell s">データファイル <code>.project-board/data.json</code>: 既にあれば「そのまま」（中身は変えない）。なければ <span class="tag write">書き込み</span>作る（空の雛形。<code>--sample</code> なら架空のサンプル）。<small class="src">tools/init.js SKELETON / data/sample.json</small></div>
+
+  <div class="n">4</div>
+  <div class="cell empty"></div>
+  <div class="cell empty"></div>
+  <div class="cell s">画面 <code>project-board.html</code>: なければ作る。同梱の版と同じなら「そのまま」。違えば <span class="tag write">書き込み</span>同梱の版で上書き（プラグインの更新に追従）。<small class="src">tools/init.js</small></div>
+
+  <div class="n">5</div>
+  <div class="cell empty"></div>
+  <div class="cell empty"></div>
+  <div class="cell s"><code>.gitignore</code> に <code>.project-board/</code> を足す。<small class="src">tools/init.js inGitRepo / lineOf</small></div>
+
+  <div class="branch"><p class="bt"><code>.gitignore</code> の扱い</p><div class="flow">
+    <div class="case">このフォルダにも親フォルダにも <code>.git</code> がない → 変更しない（「この場所も親のフォルダにも .git がないため、.gitignore は変更しません」）</div>
+    <div class="case"><code>.gitignore</code> が UTF-8 でない（UTF-16 など） → 変更しない（「.project-board/ を自分で追記してください」）</div>
+    <div class="case">既に <code>.project-board/</code> か <code>.project-board</code> の行がある → そのまま</div>
+    <div class="case">それ以外 → <span class="tag write">書き込み</span>末尾に 1 行追記（ファイルがなければ作る。改行は既存の形式に合わせる）</div>
+  </div></div>
+
+  <div class="branch"><p class="bt">途中で例外が起きた</p><div class="flow">
+    <div class="n"></div><div class="cell empty"></div>
+    <div class="cell c">理由を伝える。<small class="src">skills/init/SKILL.md</small></div>
+    <div class="cell s"><span class="tag stop">止まる</span>「失敗しました: （理由）」で終了コード 1。<small class="src">tools/init.js main()</small></div>
+  </div></div>
+
+  <div class="n">6</div>
+  <div class="cell empty"></div>
+  <div class="cell c">作成・更新したファイルを短く伝え、次の手順（ブラウザで画面を開く → 「ファイルを開く」でデータファイルを選ぶ）を案内する。<small class="src">skills/init/SKILL.md</small></div>
+  <div class="cell s">ファイルごとの結果を 1 行ずつ出す（作りました／更新しました／そのままです／追記しました／変更しませんでした）。<small class="src">tools/init.js LABEL</small></div>
+
+  <div class="n">7</div>
+  <div class="cell u">Edge か Chrome で <code>project-board.html</code> を開き、「ファイルを開く」で <code>.project-board/data.json</code> を選ぶ。以後の画面の変更は、このファイルに直接保存される。<small class="src">README.md 初回の準備</small></div>
+  <div class="cell empty"></div>
+  <div class="cell empty"></div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="f2">2. 予定表の接続設定（<code>/project-board:mcp</code>）</h2>
+<p class="lead">予定表の会議を取り込むときに、どの接続先（MCP）のどのツールで予定を取るかを決めて保存する。保存先は設定フォルダの <code>project-board-mcp.json</code> で、データファイルには入れない。</p>
+<div class="flow">
+  <div></div><div class="head u">あなた</div><div class="head c">Claude</div><div class="head s">スクリプト</div>
+
+  <div class="n">1</div>
+  <div class="cell u"><code>/project-board:mcp</code> を実行する（引数なし、<code>show</code>、<code>calendar</code> のどれか）。<small class="src">skills/mcp/SKILL.md</small></div>
+  <div class="cell c">現状を表示するスクリプトを実行する。<small class="src">skills/mcp/SKILL.md 手順 1</small></div>
+  <div class="cell s">設定フォルダの <code>project-board-mcp.json</code> を読み、予定表の指定があるかと内容を出す。<small class="src">tools/mcpconf.js show</small></div>
+
+  <div class="branch"><p class="bt">設定ファイルの読み取り</p><div class="flow">
+    <div class="case">保存先のフォルダが決まらない（環境変数も <code>--data</code> もない） → <span class="tag stop">止まる</span>終了コード 2「置き場が決まりません」<small class="src">tools/home.js NO_HOME_MESSAGE</small></div>
+    <div class="case">設定ファイルの版（<code>schema_version</code>）が無い、または対応していない → <span class="tag stop">止まる</span>終了コード 1<small class="src">src/import/mcpconf.js readMcpConfig</small></div>
+    <div class="case">ファイルがない → 「指定なし」として続ける</div>
+  </div></div>
+
+  <div class="n">2</div>
+  <div class="cell empty"></div>
+  <div class="cell c">指定の有無と内容をあなたに伝える。引数が空か <code>show</code> なら、<span class="tag stop">ここで終わる</span>。<small class="src">skills/mcp/SKILL.md 手順 1</small></div>
+  <div class="cell empty"></div>
+
+  <div class="n">3</div>
+  <div class="cell empty"></div>
+  <div class="cell c">いま Claude Code に接続している接続先（MCP）のツール一覧から、「期間を指定して予定を取得する」ツールの候補を選び、サーバー名とツール名を明示して提案する。<small class="src">skills/mcp/SKILL.md 手順 2</small></div>
+  <div class="cell empty"></div>
+
+  <div class="branch"><p class="bt">該当するツールが見つからない</p><div class="flow">
+    <div class="n"></div><div class="cell empty"></div>
+    <div class="cell c"><span class="tag stop">止まる</span>見つからなかったと伝え、接続先の用意（<code>claude mcp add</code> など）を案内して終わる。推測で指定しない。<small class="src">skills/mcp/SKILL.md 手順 2</small></div>
+    <div class="cell empty"></div>
+  </div></div>
+
+  <div class="n">4</div>
+  <div class="cell u"><span class="tag ok">承認</span>候補を承認する（または別の指定を伝える）。</div>
+  <div class="cell c">承認された内容で保存のスクリプトを実行する。<small class="src">skills/mcp/SKILL.md 手順 3</small></div>
+  <div class="cell s"><span class="tag write">書き込み</span><code>set calendar server=… listTool=…</code> を <code>project-board-mcp.json</code> に保存する（他の項目は保つ。保存日を付ける）。<small class="src">src/import/mcpconf.js setMcpRole</small></div>
+
+  <div class="branch"><p class="bt">保存の検証</p><div class="flow">
+    <div class="case">項目名の打ち間違い（<code>server</code>・<code>listTool</code>・<code>selfEmails</code>・<code>selfNames</code>・<code>roomKeywords</code> 以外） → 例外、何も書かない（黙って無視すると、除外が効かないことに気づけないため）</div>
+    <div class="case"><code>key=value</code> の形でない → 例外、何も書かない</div>
+    <div class="case"><code>server</code> か <code>listTool</code> が空 → 例外、何も書かない</div>
+  </div></div>
+
+  <div class="n">5</div>
+  <div class="cell u">自分のメールアドレス（複数可）と、自分の名前（複数可。同じ表示名の別人に心当たりがないかを確かめられる）と、会議室の名前に含まれる言葉（複数可）を答える。どれも任意で、答えなくてよい。<b>保存済みなら聞かれない</b>（変えたいと伝えたときだけ聞き直す）。</div>
+  <div class="cell c">「自分だけ・自分と会議室だけの予定（作業ブロックなど）を会議として取り込まない」ための 3 つを聞く。答えがなければ保存しない。手順 1 の表示で自分のメールアドレスか名前が保存済みなら、聞かずに保存済みの値を伝えて手順 6 へ進む。名前にカンマを含む・同じ表示名の別人に心当たりがあるときは、その名前を保存せず、メールアドレスだけにする。会議室の言葉を保存しないときは「会議室」が使われる。<small class="src">skills/mcp/SKILL.md 手順 4</small></div>
+  <div class="cell s"><span class="tag write">書き込み</span><code>set calendar selfEmails=… selfNames=… roomKeywords=…</code>。保存済みの server・listTool はそのまま残る。<code>selfEmails=</code>（空）にすると、その項目を消す。<small class="src">tools/mcpconf.js / src/import/mcpconf.js</small></div>
+
+  <div class="n">6</div>
+  <div class="cell empty"></div>
+  <div class="cell c">試しに、指定したツールで今日の予定を取得する。使ったサーバー名・ツール名、取れた件数、1 件の件名、参加者（メールアドレス・表示名・人か会議室か）が取れるかを伝える。名前が保存済みのときは、取れた参加者の表示名を見せ、保存した名前と同じものがあるかを利用者に確かめてもらう（完全一致でないと、警告なしで除外されないため）。同じものがない・確かめられないときは、手順 4 に戻って名前を入れ直すかを聞く（入れ直すときは、保存済みでも名前を聞き直す）。参加者が取れないと、自分だけの予定を除外できない。<small class="src">skills/mcp/SKILL.md 手順 5</small></div>
+  <div class="cell empty"></div>
+
+  <div class="branch"><p class="bt">試しの取得に失敗した</p><div class="flow">
+    <div class="n"></div>
+    <div class="cell u">指定を残すか、消すかを答える。</div>
+    <div class="cell c">理由を伝え、指定を残すか消すかを聞く。<small class="src">skills/mcp/SKILL.md 手順 5</small></div>
+    <div class="cell s">消すとき: <span class="tag write">書き込み</span><code>clear calendar</code> で予定表の指定を丸ごと消す（手順 5 で保存した自分のメールアドレス・名前・会議室の言葉も一緒に消える）。<small class="src">src/import/mcpconf.js clearMcpRole</small></div>
+  </div></div>
+
+  <div class="n">7</div>
+  <div class="cell empty"></div>
+  <div class="cell c"><code>/project-board:intake calendar</code> で取り込めることを伝える。<small class="src">skills/mcp/SKILL.md</small></div>
+  <div class="cell empty"></div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="f3">3. 取り込み（<code>/project-board:intake</code>）</h2>
+<p class="lead">Excel の作業一覧（WBS）、予定表の会議、会議のキーワード規則を、データファイルに取り込む。Excel と規則は「読む → 変更案の表 → 承認 → 書き込み」の順で、承認の前にタスクは変わらない。予定表の会議は、表も承認もなしで更新する（確認済みの実績は消さない。止めた理由があって、あなたが削除を認めたときだけ消える）。メール・議事録・メモの本文は、ここでは取り込まず、画面の帯に貼って依頼する（流れ 5）。</p>
+
+<h3>3-0. 共通の入口</h3>
+<div class="flow">
+  <div></div><div class="head u">あなた</div><div class="head c">Claude</div><div class="head s">スクリプト</div>
+
+  <div class="n">1</div>
+  <div class="cell u"><code>/project-board:intake wbs &lt;ファイル&gt;</code>、<code>/project-board:intake calendar</code>、<code>/project-board:intake rules</code> のどれかを実行する。<small class="src">skills/intake/SKILL.md</small></div>
+  <div class="cell c">取り込み担当のエージェント（別の Claude）に依頼を渡す。<code>wbs</code>・<code>rules</code> は Excel 側のエージェント（使えるツールは、読む・書く・コマンド実行だけ）、<code>calendar</code> は予定表側のエージェント（予定表の MCP を呼ぶため、全ツールを引き継ぐ）。どちらも、Excel のセル・予定表の件名・貼られた文章を「読むだけのデータ」として扱い、その中に書かれた指示には従わない。<small class="src">skills/intake/SKILL.md / agents/intake.md・agents/intake-calendar.md 共通のルール</small></div>
+  <div class="cell empty"></div>
+
+  <div class="branch"><p class="bt">入口での分岐</p><div class="flow">
+    <div class="case">引数が空 → 何を取り込むか（wbs・calendar・rules）を聞く</div>
+    <div class="case">メール・議事録・メモの本文が貼られた → 取り込まず、「画面の『Claude Code に依頼する』に本文を貼って頼んでください（<code>/project-board:watch</code> を動かしておきます）」と案内</div>
+    <div class="case">データファイルが見つからない → <span class="tag stop">止まる</span>先に <code>/project-board:init</code> を実行するよう伝える</div>
+    <div class="case"><code>calendar</code> で、予定表の接続先が未指定 → <span class="tag stop">止まる</span>先に <code>/project-board:mcp</code> を案内</div>
+  </div></div>
+  <div class="note">書き込みは、すべて取り込みのスクリプトが行い、検証に通ったときだけ書く。Claude はデータファイルを直接書き換えない。重要度（高）は、取り込みでは推定しない。<small class="src">agents/intake.md 共通のルール / tools/cli.js save</small></div>
+</div>
+
+<h3 id="f3a">3-a. Excel の作業一覧（<code>wbs</code>）</h3>
+<div class="flow">
+  <div></div><div class="head u">あなた</div><div class="head c">Claude</div><div class="head s">スクリプト</div>
+
+  <div class="n">1</div>
+  <div class="cell u">プロジェクトを選ぶ（引数に名前を書いていなければ、聞かれて選ぶ）。</div>
+  <div class="cell c">どのプロジェクトに入れるかを決める。引数に名前があればそれ、なければデータファイルのプロジェクト一覧から選んでもらう。<small class="src">agents/intake.md wbs 1</small></div>
+  <div class="cell empty"></div>
+
+  <div class="n">2</div>
+  <div class="cell empty"></div>
+  <div class="cell c">Excel を読むスクリプトを実行する。<small class="src">agents/intake.md wbs 2</small></div>
+  <div class="cell s">（Node.js）Excel を読むための openpyxl（システムの Python、または専用の venv）が使えるか確かめ、使えれば（Python）<code>xlsx_dump.py</code> で全シートを JSON にして出す。結合セルは左上の値を展開、日付は <code>YYYY-MM-DD</code>、非表示の行・列は除く、1 シート最大 2000 行（超えたら <code>truncated</code>）。<small class="src">tools/xlsx.js main / tools/xlsx_dump.py</small></div>
+
+  <div class="branch"><p class="bt">Excel を読むときの分岐（終了コードで分かれる）</p><div class="flow">
+    <div class="case">終了コード 2: 保存先のフォルダが決まらない → <span class="tag stop">止まる</span>「置き場が決まりません」<small class="src">tools/home.js</small></div>
+    <div class="case">終了コード 3: openpyxl が使えない（システムにも専用の venv にも無い・版のずれ・壊れている・Python がない）</div>
+    <div class="n"></div>
+    <div class="cell u"><span class="tag ok">承認</span>入れ先・内容（約 20 MB、ネットワークが必要）・使う Python を見て、入れてよいか答える。</div>
+    <div class="cell c">出力のメッセージを伝える。まず <code>setup</code> を <code>--yes</code> なしで実行し、表示をあなたに見せて、入れ先（専用の venv／システムのユーザー領域）を選んで承認を得る。承認なしに <code>--yes</code> を付けない。<small class="src">agents/intake.md wbs 2</small></div>
+    <div class="cell s"><code>setup</code>（<code>--yes</code> なし）: 何も入れず、入れ先の選択肢・内容・使う Python を表示して終了コード 3。<br><code>setup --yes</code>: <span class="tag write">書き込み</span>設定フォルダの <code>venv</code> を作り（<code>python -m venv</code>）、その中へ版とハッシュを固定した Excel 読み取りの部品（<code>openpyxl</code>・<code>defusedxml</code>）を <code>pip install</code> で入れる。<code>venv</code> が既にあって使えない（壊れた・版のずれた・利用者自身の venv）ときは、消さずに、消すか移動するよう案内して終了コード 3 で止まる。作成や pip install に失敗したときは、この実行で作りかけたフォルダだけを消して、案内して止まる（<code>venv</code>・<code>ensurepip</code> が無い Python も、作成の失敗として案内する）。この PC で確認済み（一時フォルダへの作成と、既にあるフォルダで止まること）。作りかけのフォルダを消すことは <span class="tag unv">未確認</span>（単体テストの差し替えのみ）。<br><code>setup --system --yes</code>: <span class="tag write">書き込み</span>選んだ Python のユーザー領域に <code>pip install --user</code> で入れ、その Python から読み込めることを確かめる（<span class="tag unv">未確認</span>実機では実行していない）。<small class="src">tools/xlsx.js ensureEnv</small></div>
+    <div class="n"></div>
+    <div class="cell u">承認しない、または Python がない → Excel を CSV で保存し直す。</div>
+    <div class="cell c">承認されない、Python がない（3.8 未満）、pip が使えない、部品を入れられない（ネットワーク・プロキシ）→ Excel を CSV に保存してもらい、CSV を自分で読む。<small class="src">agents/intake.md wbs 2 / tools/xlsx.js</small></div>
+    <div class="cell s">環境ができたら、読み取りをやり直す。</div>
+    <div class="case">終了コード 1: ファイルが壊れている・読めない → 「読み取れません: （理由）」<small class="src">tools/xlsx_dump.py main</small></div>
+    <div class="case">シートが複数ある → どのシートを取り込むか聞く（非表示のシートは除く）<small class="src">agents/intake.md wbs 2</small></div>
+  </div></div>
+
+  <div class="n">3</div>
+  <div class="cell empty"></div>
+  <div class="cell c">保存済みの「列の対応」（Excel のどの列が件名・期限・大項目…か）を確かめる。なければ、見出しと中身から判断して対応表を作る（OS の一時フォルダに置く）。<b>ここでは承認を求めず</b>、手順 4〜5 まで進めて、変更案と一緒に見せる。<small class="src">agents/intake.md wbs 3</small></div>
+  <div class="cell s"><code>mapping-get</code>: 保存済みの対応を返す（読み取りだけ）。<small class="src">tools/intake.js</small></div>
+
+  <div class="n">4</div>
+  <div class="cell empty"></div>
+  <div class="cell c">行を正規化して <code>rows.json</code>（一時フォルダ）を作る。階層が列・結合セル・インデント・番号のどれで表されていても、「子を持たない末尾の行」をタスク、その上 2 段を大項目・中項目にする。日付をそろえ、状態を To Do／In Progress／Done／Cancelled に対応づける（曖昧なら入れない）。前のタスクは「大項目/中項目/件名」で書く。<small class="src">agents/intake.md wbs 4</small></div>
+  <div class="cell empty"></div>
+
+  <div class="n">5</div>
+  <div class="cell empty"></div>
+  <div class="cell c">変更案を作るスクリプトを実行する。</div>
+  <div class="cell s"><code>wbs-plan</code>（読み取りだけ）: 既存のタスクと照合して、追加／更新（旧→新）／変更なし／作業一覧に無い既存（削除しない）／弾いた行と理由／警告を返す。照合は「大項目/中項目/件名」の鍵で行い、鍵のない手入力のタスクは、同じ件名が 1 つだけなら同じものとみなす。<small class="src">src/import/wbs.js planWbsImport</small></div>
+
+  <div class="branch"><p class="bt">変更案での弾き・警告</p><div class="flow">
+    <div class="case">弾く（理由を付けて <code>rejected</code> に出す）: 件名がない、期限・開始日が日付の形でない、状態が 4 つ以外、状態が「待ち」（待ち先が要るので作業一覧からは設定できない）、重要度が「高」以外、項目名が重複する、新しい項目なのに期限がない<small class="src">src/import/wbs.js rowProblem・planWbsImport</small></div>
+    <div class="case">警告: 前のタスクの名前が見つからない（その前のタスクだけ付けない）<span class="tag warn">注意</span></div>
+    <div class="case">作業一覧から消えた既存のタスクは、削除せず一覧で知らせる</div>
+  </div></div>
+
+  <div class="n">6</div>
+  <div class="cell u"><span class="tag ok">承認</span>列の対応表と変更案を一緒に見て、承認する。対応が違えば、そう伝える。</div>
+  <div class="cell c">列の対応表と変更案（追加・更新・変更なし・作業一覧に無い既存・弾いた行・警告）を表で見せ、承認を 1 回で得る。「画面で直した件名は上書きされない」と添える。対応が違うと言われたら、対応を直して手順 4 からやり直す。<small class="src">agents/intake.md wbs 3・5</small></div>
+  <div class="cell empty"></div>
+
+  <div class="n">7</div>
+  <div class="cell empty"></div>
+  <div class="cell c">承認後に、対応表の保存 → 取り込みの順で実行し、結果（追加・更新の件数）を報告する（検証はスクリプトが書く前に行う）。<small class="src">agents/intake.md wbs 6 / 共通のルール</small></div>
+  <div class="cell s"><span class="tag write">書き込み</span><code>mapping-set</code>: 対応表をプロジェクトごとに保存。<br><span class="tag write">書き込み</span><code>wbs-apply</code>: 変更案を反映（取り込んだファイル名を設定タブの記録に残す）。どちらも検証に通ったときだけ書く。<small class="src">tools/intake.js / tools/cli.js save</small></div>
+
+  <div class="branch"><p class="bt">書き込みの検証に通らない</p><div class="flow">
+    <div class="case">対応表に件名の列がない、プロジェクトがない → 例外、何も書かない<small class="src">src/import/wbs.js setWbsMapping</small></div>
+    <div class="case">反映後のデータが検証エラー → 例外、何も書かない<small class="src">src/import/wbs.js applyWbsImport / tools/cli.js save</small></div>
+  </div></div>
+</div>
+
+<h3 id="f3b">3-b. 予定表の会議（<code>calendar</code>）</h3>
+<div class="flow">
+  <div></div><div class="head u">あなた</div><div class="head c">Claude</div><div class="head s">スクリプト</div>
+
+  <div class="n">1</div>
+  <div class="cell empty"></div>
+  <div class="cell c">予定表の接続先の指定を確かめる。なければ <code>/project-board:mcp</code> を案内して<span class="tag stop">止まる</span>（見張りからのときは「予定表の MCP が未指定のため、更新しません」と 1 行で伝えて終わる）。<small class="src">agents/intake-calendar.md calendar 1</small></div>
+  <div class="cell s"><code>mcpconf.js show</code>（読み取りだけ）。<small class="src">tools/mcpconf.js</small></div>
+
+  <div class="n">2</div>
+  <div class="cell empty"></div>
+  <div class="cell c">期間を決める（依頼にあればそれ、なければ今日から 14 日後まで）。指定のツールで予定を取得し、<code>fetched.json</code>（一時フォルダ）に書く。終日の予定は含めない。参加者は「人」か「会議室・備品」の種別付きで書く。<b>参加者を返さない予定は、参加者の項目ごと省く</b>（空の配列を書くと「参加者なし」として除外されてしまう）。<b>取得に失敗（ツールが使えない・エラー・結果が切り詰められた・続きがある）なら、データを変えず、理由を 1 行で伝えて終わる</b>。取得できて 0 件なら、空の配列を書いて次へ進む。<small class="src">agents/intake-calendar.md calendar 2</small></div>
+  <div class="cell empty"></div>
+
+  <div class="n">3</div>
+  <div class="cell empty"></div>
+  <div class="cell c">自動更新のスクリプトを実行する。<b>変更案の表も承認もない。</b><small class="src">agents/intake-calendar.md calendar 3</small></div>
+  <div class="cell s"><span class="tag write">書き込み</span><code>calendar-auto</code>: ①自分だけ・自分と会議室だけの予定を除く → ②期間内の予定表由来の会議だけを追加・更新・削除に分ける → ③キーワード規則でプロジェクトを付ける → ④終わった会議・確認済みの会議の更新と削除を取り除いて「保留」に出す（実績は変わらない）→ ⑤取得が 0 件か全件が対象外で、削除の対象があるときは削除せず「止めた理由」を出す。残りを書く（検証に通ったときだけ）。手入力の会議、「参加しない」の設定、手動で付けたプロジェクトは変えない。参加者のメールアドレスは出力に出さない。<small class="src">src/import/calendar.js planAutoSync・excludeSolo / tools/intake.js calendar-auto</small></div>
+
+  <div class="branch"><p class="bt">対象外（自分だけの予定）の判定</p><div class="flow">
+    <div class="case">自分 = メールアドレスか名前（前後の空白と大文字小文字を区別しない完全一致）が <code>/project-board:mcp</code> で設定したものと一致。会議室 = 種別が会議室・備品、または名前に設定した言葉（既定「会議室」）を含む。自分と会議室を除いて参加者が 0 人なら対象外</div>
+    <div class="case">参加者の項目がない予定 → 不明なので取り込む。参加者の形が崩れている（null・文字列）→ 不明として取り込む</div>
+    <div class="case">自分のメールアドレスも名前も未設定 → 何も除かない。参加者つきの予定があれば<span class="tag warn">注意</span>「<code>/project-board:mcp</code> で設定してください」</div>
+    <div class="case">設定済みでも、どの予定にも参加者がない → <span class="tag warn">注意</span>「予定表の MCP が参加者を返すか確認してください」</div>
+    <div class="case">設定ファイルの指定が正しくない（<code>selfEmails</code> が配列でない、など） → <span class="tag stop">止まる</span>理由を出す<small class="src">tools/intake.js / src/import/mcpconf.js validateMcpConfig</small></div>
+    <div class="case">設定フォルダが決まらない（環境変数も <code>--data</code> もない） → 流れ 2 と違って止まらない。自分だけの予定を除かずに続け、参加者つきの予定があれば<span class="tag warn">注意</span>「設定を読めていない」の警告を出す<small class="src">tools/intake.js（pickHome） / src/import/calendar.js excludeSolo</small></div>
+    <div class="case">開始日・終了日が日付の形でない → 使い方を出して終了コード 2<small class="src">tools/intake.js</small></div>
+  </div></div>
+
+  <div class="n">4</div>
+  <div class="cell empty"></div>
+  <div class="cell c">「予定表を更新しました: 追加 N・更新 N・削除 N・対象外 N・保留 N」と、使った接続先の名前を伝える。保留があれば「終わった会議・確認済みの会議は、予定表で消えた・変わったが、そのまま残しています」、警告があればその内容を添える。<small class="src">agents/intake-calendar.md calendar 4</small></div>
+  <div class="cell empty"></div>
+
+  <div class="branch"><p class="bt">止めた理由（取得が 0 件、または全件が対象外）があるとき</p><div class="flow">
+    <div class="n">a</div><div class="cell empty"></div>
+    <div class="cell c">止めた理由を伝える。見張りからのときは、聞かずに終わる。それ以外は、消える会議の一覧（件名・日付）を出して、削除してよいか聞く。「終わった会議・確認済みの会議（実績）も、予定表に無ければ消えます」と添える。<small class="src">agents/intake-calendar.md calendar 5</small></div>
+    <div class="cell s"><code>calendar-plan</code>（読み取りだけ）: 消える会議を出す。終わった会議・確認済みの会議も含む。<small class="src">tools/intake.js calendar-plan</small></div>
+    <div class="n">b</div>
+    <div class="cell u"><span class="tag ok">承認</span>削除してよいか答える。「はい」以外なら何も削除しない。</div>
+    <div class="cell c">「はい」のときだけ、反映のスクリプトを実行する。</div>
+    <div class="cell s"><span class="tag write">書き込み</span><code>calendar-apply</code>: 期間内で予定表から消えた会議を、確認済みの実績と「参加しない」の設定ごと消す。予定表で日時が変わった会議は、確認済みが外れる。検証に通らなければ例外で何も書かない。<small class="src">tools/intake.js calendar-apply / src/core/schedule.js syncMcpEvents / tools/cli.js save</small></div>
+  </div></div>
+
+  <div class="n">5</div>
+  <div class="cell empty"></div>
+  <div class="cell c">成功しても失敗しても <code>fetched.json</code>（メールアドレスを含む）を消す。<small class="src">agents/intake-calendar.md calendar 6</small></div>
+  <div class="cell empty"></div>
+</div>
+
+<h3 id="f3c">3-c. 会議のキーワード規則（<code>rules</code>）</h3>
+<div class="flow">
+  <div></div><div class="head u">あなた</div><div class="head c">Claude</div><div class="head s">スクリプト</div>
+
+  <div class="n">1</div>
+  <div class="cell u"><code>/project-board:intake rules</code>、または <code>rules [A社] はプロジェクト A</code> のように伝える。</div>
+  <div class="cell c">現状の規則（件名のキーワード → プロジェクト）を見せる。<small class="src">agents/intake.md rules</small></div>
+  <div class="cell s"><code>rules-list</code>（読み取りだけ）。</div>
+
+  <div class="n">2</div>
+  <div class="cell u"><span class="tag ok">承認</span>追加・変更・削除の内容を承認する。</div>
+  <div class="cell c">承認の後に、追加・変更（<code>rules-set</code>）か削除（<code>rules-remove</code>）を実行し、続けて会議への反映（<code>rules-apply</code>）を実行する。<small class="src">agents/intake.md rules</small></div>
+  <div class="cell s"><span class="tag write">書き込み</span>規則を保存し、会議にプロジェクトを付け直す。手動で付けたひも付けは変えない。上の規則が先に当たる。<small class="src">src/core/rules.js</small></div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="f4">4. 見張り（<code>/project-board:watch</code>）と予定表の自動更新</h2>
+<p class="lead">画面の帯から届く依頼を待ち受けて、1 件ずつ提案を作る。見張っている間は、予定表の会議も承認なしで最新に保つ。見張りがないと、画面からの依頼を処理する入口はない。</p>
+<div class="flow">
+  <div></div><div class="head u">あなた</div><div class="head c">Claude</div><div class="head s">スクリプト</div>
+
+  <div class="n">1</div>
+  <div class="cell u"><code>/project-board:watch</code> を実行する。<small class="src">skills/watch/SKILL.md</small></div>
+  <div class="cell c">データファイルが見つからなければ、先に <code>/project-board:init</code> を実行するよう伝える。<small class="src">skills/watch/SKILL.md</small></div>
+  <div class="cell empty"></div>
+
+  <div class="n">2</div>
+  <div class="cell empty"></div>
+  <div class="cell c">祝日を更新するスクリプトを 1 回実行する（営業日で期限を置く提案で、土日に加えて飛ばす日になる）。<small class="src">skills/watch/SKILL.md 手順 0</small></div>
+  <div class="cell s"><code>holidays.js ensure</code>: 未取得／取得から 30 日超／一覧の最終日が今日以前のときだけ、内閣府の祝日一覧（CSV）を取得して <span class="tag write">書き込み</span>データファイルの設定に書く（こちらのデータは何も送らない）。「土日祝を営業日に数える」設定のときは取得しない。<small class="src">tools/holidays.js needsHolidayUpdate・fetchHolidays</small></div>
+
+  <div class="branch"><p class="bt">祝日の取得に失敗（接続できない・15 秒でタイムアウト・HTTP エラー）</p><div class="flow">
+    <div class="n"></div><div class="cell empty"></div>
+    <div class="cell c"><span class="tag warn">注意</span>理由を 1 行で伝えて、見張りは続ける。</div>
+    <div class="cell s">終了コード 1。データファイルは変えない。<small class="src">tools/holidays.js</small></div>
+  </div></div>
+
+  <div class="n">3</div>
+  <div class="cell empty"></div>
+  <div class="cell c">Claude Code の監視機能（Monitor）で、依頼を待つスクリプトを起動する。上限は 30 分。起動できたら「見張りを始めました。HTML の『Claude Code に依頼する』から依頼できます」とだけ伝える。<small class="src">skills/watch/SKILL.md 手順 1</small></div>
+  <div class="cell s"><code>inbox.js wait</code>: 2 秒ごとにデータファイルを読み、①30 秒ごとに「見ている印」を <span class="tag write">書き込み</span>、②新しく届いた依頼（返信・再提案の依頼を含む）を「request」として 1 行出す。書き込みの途中で読めないときと、見ている印を書けないとき（データファイルが検証に通らない、など）は、何も出さず、次の回にもう一度試す。<small class="src">tools/inbox.js wait / skills/watch/SKILL.md 手順 2</small></div>
+
+  <div class="branch"><p class="bt">監視機能が使えない</p><div class="flow">
+    <div class="n"></div><div class="cell empty"></div>
+    <div class="cell c"><span class="tag stop">止まる</span>その旨を伝えて終わる（見張りなしで依頼を処理する入口はない）。<small class="src">skills/watch/SKILL.md 手順 1</small></div>
+    <div class="cell empty"></div>
+  </div></div>
+
+  <div class="n">4</div>
+  <div class="cell u">画面の帯に「Claude Code が見ています」と出る（見ている印が 90 秒以内のとき）。見ていないときは「見ていません」と、<code>/project-board:watch</code> を実行する案内が出る。<small class="src">src/ui/views/inboxpanel.js / src/core/inbox.js isWatching</small></div>
+  <div class="cell empty"></div>
+  <div class="cell empty"></div>
+
+  <div class="n">5</div>
+  <div class="cell empty"></div>
+  <div class="cell c">見張りが始まったあとで、取り込みのエージェントに「予定表の自動更新」を<b>バックグラウンドで</b>頼む（更新の間も依頼を処理できるように）。エージェントの報告（止めた理由・警告・保留を含む）は、そのままあなたに伝える。<small class="src">skills/watch/SKILL.md 手順 1.5</small></div>
+  <div class="cell empty"></div>
+
+  <div class="branch"><p class="bt">予定表の自動更新（承認の確認なしで書く。終わった会議・確認済みの会議は変えない）</p><div class="flow">
+    <div class="n">a</div><div class="cell empty"></div>
+    <div class="cell c">接続先の指定を確かめる。なければ「予定表の MCP が未指定のため、更新しません」と 1 行で伝えて終わる。<small class="src">agents/intake-calendar.md calendar 1</small></div>
+    <div class="cell s"><code>mcpconf.js show</code>。</div>
+    <div class="n">b</div><div class="cell empty"></div>
+    <div class="cell c">今日から 14 日後までを取得し、<code>fetched.json</code>（一時フォルダ）に書く。<b>取得に失敗（ツールが使えない・エラー・結果が切り詰められた・続きがある）なら、データを変えず、理由を 1 行で伝えて終わる</b>（一部だけ書くと、書かれなかった会議が消えるため）。取得できて 0 件なら、空の配列を書いて次へ進む。<small class="src">agents/intake-calendar.md calendar 2</small></div>
+    <div class="cell empty"></div>
+    <div class="n">c</div><div class="cell empty"></div>
+    <div class="cell c">自動更新のスクリプトを実行する。</div>
+    <div class="cell s"><span class="tag write">書き込み</span><code>calendar-auto</code>: 変更案から、①終わった会議・確認済みの会議の更新と削除を取り除いて「保留」に出す（規則でプロジェクトが付いただけの変更は反映する）、②取得が 0 件か全件が対象外で、削除の対象があるときは削除せず「止めた理由」を出す。残りを書く（検証に通ったときだけ）。<small class="src">src/import/calendar.js planAutoSync / tools/intake.js calendar-auto</small></div>
+    <div class="n">d</div><div class="cell empty"></div>
+    <div class="cell c">「予定表を更新しました: 追加 N・更新 N・削除 N・対象外 N・保留 N」と 1 行で伝える。保留があれば「終わった会議・確認済みの会議は、予定表で消えた・変わったが、そのまま残しています」、止めた理由・警告があればその内容を添える（見張りからのときは、削除してよいかを聞かない）。成功しても失敗しても <code>fetched.json</code> を消す。<small class="src">agents/intake-calendar.md calendar 4・5・6</small></div>
+    <div class="cell empty"></div>
+    <div class="note"><span class="tag unv">未確認</span>実際の予定表の接続先での動作と、接続先のツールの許可確認が出て止まるか（出た場合は、答えるまで更新が待つ想定。見張りは止まらない）。<small class="src">docs/development.md 取り込み</small></div>
+  </div></div>
+
+  <div class="n">6</div>
+  <div class="cell empty"></div>
+  <div class="cell c">イベントを受け取る。「request」なら、依頼処理のエージェントに、その依頼の処理を頼む（流れ 5）。複数届いたら順に。<small class="src">skills/watch/SKILL.md 手順 2</small></div>
+  <div class="cell empty"></div>
+
+  <div class="n">7</div>
+  <div class="cell empty"></div>
+  <div class="cell c">見張っている間の約束: <b>端末で質問して止まらない</b>（聞きたいことは画面に「聞き返し」として出す）。承認も待たない。<small class="src">skills/watch/SKILL.md 手順 3</small></div>
+  <div class="cell empty"></div>
+
+  <div class="branch"><p class="bt">端末で承認・却下を伝えたとき</p><div class="flow">
+    <div class="n"></div>
+    <div class="cell u">端末で「R3 を承認」または「R3 を却下」と伝える。</div>
+    <div class="cell c">承認: まず提案の中身（変更の節・警告）を見せてから、承認のスクリプトを実行する。画面で先に承認・却下されていて失敗したら、その旨を伝える。却下: 却下のスクリプトを実行する。<small class="src">skills/watch/SKILL.md 手順 3</small></div>
+    <div class="cell s"><code>get R3</code>（読み取り） → <span class="tag write">書き込み</span><code>approve R3</code>: 状態が「提案あり」のときだけ反映する（二重反映の防止）。提案のあとにデータが変わっていたら、反映せず「失敗」にする。<br><span class="tag write">書き込み</span><code>reject R3</code>。<small class="src">tools/inbox.js approve・reject / src/ui/inboxops.js applyProposal</small></div>
+  </div></div>
+
+  <div class="n">8</div>
+  <div class="cell u">見張りを止めたいときは、「見張りをやめて」と伝える。</div>
+  <div class="cell c">30 分で監視が終わる（期限切れの通知）→ <b>もう一度 待つスクリプトを起動し、続けて予定表の自動更新（手順 5）も行って</b>、見張りを続ける。「見張りをやめて」と言われたら、このセッションで動いている待つスクリプトの監視（Monitor）を探して止める。見つからなければ「このセッションでは見張りが動いていません」と伝える（別のセッションの見張りは、そのセッションで止める）。<small class="src">skills/watch/SKILL.md 手順 4・見張りを止めるとき</small> <span class="tag unv">未確認</span>会話からの停止は実行していない</div>
+  <div class="cell s">監視が止まると、見ている印が更新されなくなり、90 秒ほどで画面に「見ていません」と出る。<small class="src">skills/watch/SKILL.md 手順 5 / src/core/inbox.js WATCH_FRESH_MS</small></div>
+  <div class="note"><span class="tag unv">未確認</span>Claude Code が入力待ちの間に、届いた依頼で自動で動くこと（作業中に動くことは確認済み）。動かないときは、作業中の Claude Code に「届いている依頼を処理して」と頼む。<small class="src">docs/development.md 見張りと競合</small></div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="f5">5. 画面からの依頼（画面下端の帯「Claude Code に依頼する」）</h2>
+<p class="lead">日程の見直し（期限の変更）・タスクの登録・メールや議事録からの取り込みを、文章で依頼する（受ける操作は <code>addTask</code> と <code>moveDue</code> の 2 種類だけ。状態・重要度・削除・プロジェクトやマイルストーンの変更などは画面で行う）。Claude は「提案」を作るところまでで、反映はあなたが承認したときに画面（または端末の承認）が行う。承認するまで、タスクの日程・前のタスク・一覧は変わらない。</p>
+
+<h3>5-a. 依頼を送る</h3>
+<div class="flow">
+  <div></div><div class="head u">あなた</div><div class="head c">Claude</div><div class="head s">スクリプト</div>
+
+  <div class="n">1</div>
+  <div class="cell u">画面下端の帯「▲ 開く」を押す。対象のプロジェクト（または「すべて」）を選び、文章を書く（「書き方の例」を押すと例文が入る）。「依頼を送る」を押す。<small class="src">src/ui/views/inboxpanel.js renderInboxBar</small></div>
+  <div class="cell empty"></div>
+  <div class="cell s">（画面の中の処理）依頼を <code>R1</code>、<code>R2</code>… の番号で、状態「送信済み」としてデータファイルの受信箱に <span class="tag write">書き込み</span>。履歴は 20 件まで（超えたら、済んだ古いものから消す。処理中は消えない）。<small class="src">src/core/inbox.js submitRequest・pruneRequests / src/ui/app.js sendRequest</small></div>
+
+  <div class="branch"><p class="bt">送るときの分岐</p><div class="flow">
+    <div class="case">データファイルを「ファイルを開く」で直接開いていない（直接保存に対応しないブラウザ、または Edge・Chrome でもまだ開いていないとき） → 帯は使えず、「ファイルへの直接保存が必要です」と出る<small class="src">src/ui/app.js（canWrite: store.hasFile） / inboxpanel.js</small></div>
+    <div class="case">文章が空 → 「依頼を入力してください」</div>
+    <div class="case">文章が 4000 文字を超える → 「依頼は 4000 文字までにしてください」<small class="src">src/core/inbox.js MAX_TEXT</small></div>
+    <div class="case">保存が他の更新と重なった → 画面が最新のファイルを読み直し、同じ編集を当ててから保存する（編集は消えない）。当て直せなかったときだけ「他で更新されました。再読込してください」<small class="src">src/ui/sync.js / docs/development.md 保存と競合</small></div>
+    <div class="case">見張りが動いていない → 帯に「Claude Code が見ていないようです。<code>/project-board:watch</code> を実行すると、依頼を受け取ります」と出る（依頼自体は書かれ、見張りが始まると拾われる）</div>
+  </div></div>
+
+  <div class="n">2</div>
+  <div class="cell u">画面は、帯が開いているか済んでいない依頼（送信済み・処理中・聞き返し・提案あり）があるときは 4 秒ごと、そうでなければ 16 秒ごとにファイルを読み直し、状態（送信済み → 処理中 → 聞き返し／提案／失敗／反映済み／却下）を表示する。タブが隠れている間は読み直さない。<small class="src">src/ui/sync.js pollInbox / inboxpanel.js STATUS</small></div>
+  <div class="cell empty"></div>
+  <div class="cell s">見張りの <code>wait</code> が、新しい依頼を「request」として Claude に知らせる（流れ 4 の手順 6）。</div>
+</div>
+
+<h3>5-b. Claude が提案を作る（依頼 1 件ごと）</h3>
+<div class="flow">
+  <div></div><div class="head u">あなた</div><div class="head c">Claude</div><div class="head s">スクリプト</div>
+
+  <div class="n">1</div>
+  <div class="cell empty"></div>
+  <div class="cell c">依頼処理のエージェント（別の Claude。使える道具は「読む」と「コマンド実行」だけ）が、依頼を受け取る。<small class="src">agents/inbox.md 手順 1</small></div>
+  <div class="cell s"><span class="tag write">書き込み</span><code>claim</code>: 状態を「送信済み」→「処理中」にし、依頼の文章と対象のプロジェクトを返す。<small class="src">tools/inbox.js claim / src/core/inbox.js claimRequest</small></div>
+
+  <div class="n">2</div>
+  <div class="cell empty"></div>
+  <div class="cell c">データファイルのプロジェクトとタスク（ID・件名・期限・状態・前のタスク）を読み、依頼に出てくるタスクを ID と件名で照合する。<small class="src">agents/inbox.md 手順 2</small></div>
+  <div class="cell empty"></div>
+
+  <div class="n">3</div>
+  <div class="cell empty"></div>
+  <div class="cell c">依頼を 2 種類の操作に分けて、<code>ops.json</code>（OS の一時フォルダ）に書く: 期限を動かす（<code>moveDue</code>）／タスクを足す（<code>addTask</code>。チェックリストの項目・前のタスク・営業日つき）。<br>守ること: <b>日付の足し算は自分でしない</b>（スクリプトが計算する）。期限の日付がないタスクは、前のタスクと「作業の性質から見立てた営業日」で仮に置く。件数・中身のない登録依頼は 3〜5 件の案を作る。<small class="src">agents/inbox.md 手順 3</small></div>
+  <div class="cell empty"></div>
+
+  <div class="branch"><p class="bt">足りない情報がある／対象外の依頼</p><div class="flow">
+    <div class="case">どのプロジェクトか分からない、前のタスクが曖昧、順序も作業の性質も読めない → 推測せず聞き返す（期限の日付だけがないときは聞き返さず、仮に置く）</div>
+    <div class="n"></div>
+    <div class="cell u">画面の帯に「聞き返しがあります」と出る。返信欄に答えて「返信する」を押す → 状態が「送信済み」に戻り、Claude にもう一度届く。<small class="src">inboxpanel.js detailHtml question / src/core/inbox.js replyToRequest</small></div>
+    <div class="cell c"><code>ask</code> を実行して、この依頼の処理を終える。<span class="tag stop">端末で止まらない</span>。<small class="src">agents/inbox.md 手順 4</small></div>
+    <div class="cell s"><span class="tag write">書き込み</span><code>ask</code>: 状態を「聞き返し」にし、質問をやりとりに足す。<small class="src">tools/inbox.js ask / src/core/inbox.js askQuestion</small></div>
+    <div class="case">画面で行う操作（状態・重要度の変更、削除、プロジェクトやマイルストーンの変更、前のタスクの付け外し、チェックリストの項目の変更）→ <code>ask</code> で「この依頼は画面で行ってください」と返し、提案は作らない<small class="src">agents/inbox.md 手順 3</small></div>
+    <div class="case">対象外（会議の追加・削除、Excel・予定表・規則の取り込み）→ <code>fail</code> で「できない旨と、代わりの方法（<code>/project-board:intake</code>）」を返す<small class="src">agents/inbox.md 手順 5</small></div>
+    <div class="n"></div>
+    <div class="cell u">帯に「失敗」と理由が出る。</div>
+    <div class="cell empty"></div>
+    <div class="cell s"><span class="tag write">書き込み</span><code>fail</code>: 状態を「失敗」にし、理由をやりとりに足す。<small class="src">tools/inbox.js fail</small></div>
+  </div></div>
+
+  <div class="n">4</div>
+  <div class="cell empty"></div>
+  <div class="cell c">提案のスクリプトを実行する。要約（<code>--summary</code>）、変更履歴に残す理由（<code>--reason</code>。依頼の文章から 1 文）、日程が動いた原因（<code>--cause</code>: ベンダー／社内／自分／その他。読めなければ、原因が複数でも「その他」）を添える。仮の日程を置いたときは要約に「日程は仮です。行番号で直せます」と行ごとの根拠を書く。<small class="src">agents/inbox.md 手順 6</small></div>
+  <div class="cell s"><code>propose</code>: 操作を試しに当てて（データは変えない）、変更の節（期限／登録）と警告を作る。前のタスクの期限が動いたら次のタスクも繰り下げる。営業日の期限は、前のタスクの期限（なければ今日）から土日・祝日・登録した休みを除いて数える。営業日を使う提案で祝日が未取得・古い・範囲外なら、ここで祝日を 1 回取得する（取れなくても提案は止めず、警告に書く）。<span class="tag write">書き込み</span>提案を受信箱に書き、状態を「提案あり」にする。<small class="src">tools/inbox.js propose / src/ui/inboxops.js planOps</small></div>
+
+  <div class="branch"><p class="bt">提案のスクリプトが失敗する（終了コード 1。何も書かない）</p><div class="flow">
+    <div class="case">存在しないタスク・プロジェクトの ID、<code>addTask</code>・<code>moveDue</code> 以外の操作（「この操作は依頼では受けられません: …（画面で行ってください）」）、操作が 0 件</div>
+    <div class="case">前のタスクが循環している、前のタスクが別のプロジェクトのタスク</div>
+    <div class="case">完了したタスクの期限を動かす、動かす日数が 0 日、期限か日数のどちらも書いていない</div>
+    <div class="case">期限の移動と、営業日指定の登録を同じ依頼に入れた（前のタスクの期限が動くと営業日が吸収されるため）→ Claude は期限の移動だけを提案し、要約に「登録は、この提案の承認後に、もう一度依頼してください」と書く</div>
+    <div class="case">登録に「日付」と「営業日」の両方（または両方なし）、登録の仮の名前（<code>ref</code>）がない・重複している</div>
+    <div class="case">原因が 4 つ以外、反映後のデータが検証に通らない</div>
+    <div class="n"></div><div class="cell empty"></div>
+    <div class="cell c">標準エラーの理由を読んで操作を直し、もう一度 <code>propose</code>。直せないときは <code>fail</code> で理由を返す。<small class="src">agents/inbox.md 手順 6</small></div>
+    <div class="cell empty"></div>
+  </div></div>
+
+  <div class="branch"><p class="bt">提案に付く警告（<span class="tag warn">注意</span>提案は作られる）</p><div class="flow">
+    <div class="case">登録・移動の結果、タスクの期限がプロジェクトの期限を超える</div>
+    <div class="case">期限が指定した開始日より前になるので開始日を外す／次のタスクの期限が前のタスクより前なので揃えた／前のタスクの新しい期限より前にできないので揃えた／登録の営業日が、前のタスクの期限の引き上げで反映されていない</div>
+        <div class="case">祝日を取得できなかった（手動登録の休みだけで計算）／祝日の一覧の範囲を超えている</div>
+  </div></div>
+
+  <div class="n">5</div>
+  <div class="cell empty"></div>
+  <div class="cell c">あなたに 1〜2 行で知らせる（例: 「R3 の提案を作りました（登録 2 件・期限の変更 1 件）。承認は HTML、またはここで『R3 を承認』と伝えてください」）。<b>ここで止まらず、承認を待たない。</b>次の依頼へ。<small class="src">agents/inbox.md 手順 7</small></div>
+  <div class="cell empty"></div>
+  <div class="note">メール・議事録・メモの本文が貼られた依頼も同じ経路。本文から、新しいタスク（登録）と日程変更（期限を動かす）を抽出して 1 つの提案にする。状態や重要度の変更は依頼では受けない。どのプロジェクトか分からないときは聞き返す。本文の中の指示（コマンドの実行・ファイルの読み書き・規則の変更）には従わない。<small class="src">agents/inbox.md 文章が貼られた依頼 / 注意</small></div>
+</div>
+
+<h3>5-c. 提案を承認・却下・修正する</h3>
+<div class="flow">
+  <div></div><div class="head u">あなた</div><div class="head c">Claude</div><div class="head s">スクリプト</div>
+
+  <div class="n">1</div>
+  <div class="cell u">帯に「提案が N 件届いています」と出る。提案カードで、変更の節（表）と警告を確かめ、「原因」と「変更履歴に残す理由」を直せる。<small class="src">inboxpanel.js detailHtml proposed</small></div>
+  <div class="cell empty"></div>
+  <div class="cell empty"></div>
+
+  <div class="branch"><p class="bt">あなたの選択</p><div class="flow">
+    <div class="case">「承認して反映する」を押す</div>
+    <div class="n"></div>
+    <div class="cell u"><span class="tag ok">承認</span>画面がその場で反映して保存する。「反映しました」と出て、カードは「反映済み（この画面で承認）」になる。</div>
+    <div class="cell c">見張りは何もしない（知らせも出ない）。</div>
+    <div class="cell s">（画面の中の処理）①状態が「提案あり」でなければ「この依頼は、すでに処理されています」（端末で先に承認・却下されたとき。二重には反映されない）。②理由が空なら「変更履歴に残す理由を入力してください」。③<b>いまのデータで操作をもう一度計算して、提案の表（期限／登録）と違う・計算できない（タスクやプロジェクトが消えた、完了した、など）、または保存済みの提案に <code>addTask</code>・<code>moveDue</code> 以外の操作が残っているときは、反映せず「失敗」にする</b>（「提案のあとにデータが変わったので、反映しませんでした。『もう一度提案してもらう』を押してください」）。④それ以外は <span class="tag write">書き込み</span>反映し、変更履歴に、期限を動かす操作ごとに 1 件（日数・理由・原因つき）と、登録があるときの 1 件を残す。<small class="src">src/ui/app.js approveRequest / src/ui/inboxops.js applyProposal</small></div>
+    <div class="case">「却下する」を押す → <span class="tag write">書き込み</span>状態を「却下」にする。タスクは変わらない<small class="src">src/core/inbox.js rejectRequest</small></div>
+    <div class="case">修正の依頼を書いて「修正を依頼する」を押す（例: 「3 行目を 10 営業日に」） → 提案は消え、状態が「送信済み」に戻る → Claude が <code>ops.json</code> を直して、もう一度提案する<small class="src">src/core/inbox.js replyToRequest / agents/inbox.md 手順 6</small></div>
+    <div class="case">端末で「R3 を承認」「R3 を却下」と伝える → 流れ 4 の分岐「端末で承認・却下を伝えたとき」</div>
+  </div></div>
+
+  <div class="n">2</div>
+  <div class="cell u">「失敗」になった依頼には「もう一度提案してもらう」ボタンが出る。押すと「送信済み」に戻り、Claude が作り直す。<small class="src">inboxpanel.js detailHtml failed / src/core/inbox.js retryRequest</small></div>
+  <div class="cell empty"></div>
+  <div class="cell empty"></div>
+
+  <div class="n">3</div>
+  <div class="cell u">反映後、ガントチャート・リストに結果が出る。期限を動かした記録は「日程変更の履歴」に、それ以外（登録）はまとめた 1 件として変更履歴に残る（「日程変更の履歴」には出ない）。<small class="src">docs/development.md HTML からの依頼</small></div>
+  <div class="cell empty"></div>
+  <div class="cell empty"></div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="f6">6. 動作環境の診断（<code>/project-board:doctor</code>）</h2>
+<p class="lead">別の PC で使い始めるときなどに、足りないものと対処の手順を出す。診断だけで、何も変更しない。対処のコマンドは、頼まれるまで実行しない。</p>
+<div class="flow">
+  <div></div><div class="head u">あなた</div><div class="head c">Claude</div><div class="head s">スクリプト</div>
+
+  <div class="n">1</div>
+  <div class="cell u"><code>/project-board:doctor</code> を実行する。<small class="src">skills/doctor/SKILL.md</small></div>
+  <div class="cell c">診断のスクリプトを実行する（この指示は Claude が自分の判断で呼ぶことはできず、あなたのコマンドでだけ動く）。<small class="src">skills/doctor/SKILL.md（disable-model-invocation）</small></div>
+  <div class="cell s">6 項目を順に確認する。必須: Node.js 24 以上／保存先（フォルダで、書き込める）。任意: project-board の版（GitHub をマーケットプレイスに登録しているときは、GitHub の最新の版と比べる）／祝日一覧（内閣府）に届く／Excel の読み取り（Python・pip・openpyxl）／予定表の MCP の指定。祝日一覧へは接続を試すだけで、<code>data.json</code> は読まず、書かない。<small class="src">tools/doctor.js runChecks()</small></div>
+
+  <div class="branch"><p class="bt">実行の入口</p><div class="flow">
+    <div class="case">起動コマンド <code>node</code> が見つからない → <span class="tag stop">止まる</span>Node.js 24 以上の入れ方（<code>winget install OpenJS.NodeJS.LTS</code>）を案内し、開き直してからの再実行を頼む<small class="src">skills/doctor/SKILL.md 手順 1</small> <span class="tag unv">未確認</span></div>
+    <div class="case">保存先が決まらない（環境変数も <code>--data</code> もない）、または展開されていない <code>${…}</code> が残っている → 「保存先」が要対処になり、Excel と予定表は「確認できません」（任意）として続ける<small class="src">tools/doctor.js checkHome()</small></div>
+    <div class="case">GitHub に新しい版がある → <code>[任意]</code> として、<code>/plugin marketplace update</code>・<code>/plugin update</code>・開き直しを案内する（終了コードは変えない）。マーケットプレイスに登録がなければ、確認せず今の版だけ示す。届かないときは理由を出す<small class="src">tools/doctor.js checkVersion()</small> <span class="tag unv">未確認</span>（新しい版があるときの実機の表示。同じ版の実機は確認済み）</div>
+    <div class="case">祝日一覧に届かない →<code>[任意]</code> として、プロキシの確認と <code>NODE_USE_ENV_PROXY=1</code> を案内する（終了コードは変えない。最大 15 秒待つ）<small class="src">tools/doctor.js checkHolidays()</small></div>
+    <div class="case">1 項目の確認が予期しない例外で落ちる → その項目を「確認できませんでした」にして、ほかの項目は出す<small class="src">tools/doctor.js guard()</small></div>
+  </div></div>
+
+  <div class="n">2</div>
+  <div class="cell empty"></div>
+  <div class="cell empty"></div>
+  <div class="cell s">項目ごとに <code>[OK]</code>・<code>[要対処]</code>（必須が足りない）・<code>[任意]</code>（任意が足りない）と、対処の手順（「→」）を出す。必須が 1 つでも要対処なら終了コード 3、それ以外は 0。<small class="src">tools/doctor.js render()</small></div>
+
+  <div class="branch"><p class="bt">Excel の読み取り（任意）の状態</p><div class="flow">
+    <div class="case">Python が無い・3.8 未満 → <code>winget install Python.Python.3.12</code>、<code>py -3 --version</code> で確認、もう一度 doctor、の順に案内する <span class="tag unv">未確認</span><small class="src">tools/doctor.js checkExcel()</small></div>
+    <div class="case">Python はあるが venv を作れない（<code>venv</code> か <code>ensurepip</code> が無い）→ Python の入れ直し（<code>winget</code>）を案内する。pip があれば、システムに入れる手順（<code>--system</code>）も出す <span class="tag unv">未確認</span><small class="src">tools/doctor.js checkExcel()</small></div>
+    <div class="case">openpyxl が無い（venv を作れる）→ <code>xlsx.js setup</code>（入れ先と内容を表示して止まる）→ 入れ先（専用の venv／システム。pip があるときだけ）を選ぶ → <code>setup --yes</code> か <code>setup --system --yes</code> で実行、の順に案内する（入れ先と版も示す）。案内の表示はこの PC で確認済み（<code>--system</code> の実行は<span class="tag unv">未確認</span>）<small class="src">tools/doctor.js checkExcel()</small></div>
+    <div class="case">システムの Python に使える openpyxl がある → 「OK」（pip は見ない）<small class="src">tools/doctor.js checkExcel()</small></div>
+    <div class="case">どの場合も、入れられないときは Excel を CSV に保存する案を添える</div>
+  </div></div>
+
+  <div class="n">3</div>
+  <div class="cell empty"></div>
+  <div class="cell c">項目ごとに伝える。<code>[OK]</code> は一言、<code>[要対処]</code> は「→」の手順を番号つきで、<code>[任意]</code> は使うかを聞き、使うときだけ手順を伝える。<small class="src">skills/doctor/SKILL.md 手順 2</small></div>
+  <div class="cell empty"></div>
+
+  <div class="n">4</div>
+  <div class="cell u">手順の実行を頼む（頼まなければ、ここで終わる）。<small class="src">skills/doctor/SKILL.md 手順 3</small></div>
+  <div class="cell c">1 つずつ実行して結果を伝える。<code>setup</code> は、<code>--yes</code> なしの出力を見せて、入れ先を選んで承認を得てから、<code>--yes</code>（システムは <code>--system --yes</code>）を付ける。<small class="src">skills/doctor/SKILL.md 手順 3</small> <span class="tag unv">未確認</span></div>
+  <div class="cell empty"></div>
+
+  <div class="n">5</div>
+  <div class="cell empty"></div>
+  <div class="cell c">もう一度 <code>/project-board:doctor</code> を実行し、<code>[要対処]</code> が無くなったことを確かめる。<small class="src">skills/doctor/SKILL.md 手順 4</small></div>
+  <div class="cell empty"></div>
+</div>
+<div class="note"><span class="tag unv">未確認</span>別の PC での実行、Python が無い・pip が無い環境での実行（単体テストの差し替えのみ）、<code>winget</code>・<code>ensurepip</code> の実行結果、プロキシの内側での祝日の接続、Claude Code から <code>/project-board:doctor</code> を呼ぶ動き。<small class="src">docs/development.md 動作環境の診断</small></div>
+
+<p class="lead" style="margin-top:48px">この図は <code>docs/flow.html</code> に置いていて、GitHub に公開する。根拠に挙げた <code>docs/development.md</code> は公開しない（<code>.gitignore</code> の <code>docs/*</code>）。</p>
+</main>
+</body>
+</html>

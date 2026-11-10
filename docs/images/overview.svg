@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" font-family="'Yu Gothic','Meiryo','Hiragino Sans',sans-serif" role="img" aria-labelledby="t d">
+  <title id="t">project-board の全体図</title>
+  <desc id="d">ブラウザの project-board.html と Claude Code が、同じ data.json を読み書きする。画面は表示と保存、Claude Code は Excel の WBS・予定表の会議の取り込みと依頼の処理を受け持つ。</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+  </defs>
+  <rect width="900" height="560" fill="#ffffff"/>
+
+  <!-- 画面 -->
+  <rect x="300" y="20" width="300" height="100" rx="10" fill="#e0f2fe" stroke="#0369a1" stroke-width="2"/>
+  <text x="450" y="58" text-anchor="middle" font-size="20" font-weight="bold" fill="#0c4a6e">project-board.html（ブラウザ）</text>
+  <text x="450" y="86" text-anchor="middle" font-size="16" fill="#0c4a6e">ガント・リスト・スケジュール・稼働</text>
+  <text x="450" y="106" text-anchor="middle" font-size="16" fill="#0c4a6e">依頼の帯</text>
+
+  <!-- data.json -->
+  <rect x="300" y="220" width="300" height="90" rx="10" fill="#fef9c3" stroke="#a16207" stroke-width="2"/>
+  <text x="450" y="258" text-anchor="middle" font-size="20" font-weight="bold" fill="#713f12">.project-board/data.json</text>
+  <text x="450" y="286" text-anchor="middle" font-size="16" fill="#713f12">プロジェクト・タスク・設定・受信箱</text>
+
+  <!-- Claude Code -->
+  <rect x="300" y="420" width="300" height="110" rx="10" fill="#ffedd5" stroke="#c2410c" stroke-width="2"/>
+  <text x="450" y="456" text-anchor="middle" font-size="20" font-weight="bold" fill="#7c2d12">Claude Code</text>
+  <text x="450" y="484" text-anchor="middle" font-size="16" fill="#7c2d12">/project-board:intake（取り込み）</text>
+  <text x="450" y="508" text-anchor="middle" font-size="16" fill="#7c2d12">/project-board:watch（依頼の処理）</text>
+
+  <!-- 入力 -->
+  <rect x="20" y="425" width="190" height="42" rx="10" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
+  <text x="115" y="452" text-anchor="middle" font-size="17" fill="#1e293b">Excel の WBS</text>
+  <rect x="20" y="483" width="190" height="42" rx="10" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
+  <text x="115" y="510" text-anchor="middle" font-size="17" fill="#1e293b">予定表の会議</text>
+  <line x1="212" y1="446" x2="296" y2="446" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="212" y1="504" x2="296" y2="504" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- 画面 <-> data.json -->
+  <line x1="380" y1="122" x2="380" y2="216" stroke="#334155" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text x="370" y="162" text-anchor="end" font-size="16" fill="#1e293b">表示・直接保存</text>
+  <line x1="520" y1="122" x2="520" y2="216" stroke="#334155" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#a)"/>
+  <text x="530" y="162" font-size="16" fill="#1e293b">依頼を書く</text>
+  <text x="530" y="182" font-size="16" fill="#1e293b">（メール・日程など）</text>
+
+  <!-- data.json <-> Claude Code -->
+  <line x1="380" y1="418" x2="380" y2="314" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <text x="370" y="360" text-anchor="end" font-size="16" fill="#1e293b">原則、承認後に書く</text>
+  <line x1="520" y1="314" x2="520" y2="418" stroke="#334155" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#a)"/>
+  <text x="530" y="360" font-size="16" fill="#1e293b">依頼を読む</text>
+
+  <!-- 凡例 -->
+  <line x1="650" y1="440" x2="710" y2="440" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <text x="722" y="446" font-size="16" fill="#1e293b">データの流れ</text>
+  <line x1="650" y1="475" x2="710" y2="475" stroke="#334155" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#a)"/>
+  <text x="722" y="481" font-size="16" fill="#1e293b">依頼の流れ</text>
+</svg>
