@@ -600,7 +600,7 @@
   <div class="n">1</div>
   <div class="cell u"><code>/project-board:doctor</code> を実行する。<small class="src">skills/doctor/SKILL.md</small></div>
   <div class="cell c">診断のスクリプトを実行する（この指示は Claude が自分の判断で呼ぶことはできず、あなたのコマンドでだけ動く）。<small class="src">skills/doctor/SKILL.md（disable-model-invocation）</small></div>
-  <div class="cell s">6 項目を順に確認する。必須: Node.js 24 以上／保存先（フォルダで、書き込める）。任意: project-board の版（GitHub をマーケットプレイスに登録しているときは、GitHub の最新の版と比べる）／祝日一覧（内閣府）に届く／Excel の読み取り（Python・pip・openpyxl）／予定表の MCP の指定。祝日一覧へは接続を試すだけで、<code>data.json</code> は読まず、書かない。<small class="src">tools/doctor.js runChecks()</small></div>
+  <div class="cell s">7 項目を順に確認する。必須: OS（Windows）／実行環境（Node.js 24 以上）／保存先（フォルダで、書き込める）。任意: 祝日一覧（内閣府）に届く／Excel の読み取り（Python・pip・openpyxl）／予定表の MCP の指定。情報: 版（GitHub をマーケットプレイスに登録しているときは、GitHub の最新の版と比べる）。祝日一覧へは接続を試すだけで、<code>data.json</code> は読まず、書かない。<small class="src">tools/doctor.js runChecks()</small></div>
 
   <div class="branch"><p class="bt">実行の入口</p><div class="flow">
     <div class="case">起動コマンド <code>node</code> が見つからない → <span class="tag stop">止まる</span>Node.js 24 以上の入れ方（<code>winget install OpenJS.NodeJS.LTS</code>）を案内し、開き直してからの再実行を頼む<small class="src">skills/doctor/SKILL.md 手順 1</small> <span class="tag unv">未確認</span></div>
