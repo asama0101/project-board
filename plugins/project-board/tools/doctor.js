@@ -150,10 +150,10 @@ async function checkVersion(readPlugin, readMarketplace, latest) {
   const { version, repository } = readPlugin();
   const repo = repository?.match(/github\.com\/([^/]+\/[^/.]+)/)?.[1];
   const market = Object.entries(readMarketplace()).find(([, m]) => m.source?.source === "github" && m.source.repo === repo)?.[0];
-  if (!market) return item(name, "info", `v${version}（GitHub のマーケットプレイスに登録されていないため、最新かは確認しません）`);
+  if (!market) return item(name, "info", `v${version}（GitHub のマーケットプレイスに登録していないため、最新かは確認しません）`);
   let newest;
   try { newest = await latest(repo); } catch (e) {
-    return item(name, "info", `v${version}（最新の版を確認できませんでした: ${e.message}）`, ["ネットワークにつながっているか、github.com への通信を止めていないかを確認する"]);
+    return item(name, "info", `v${version}（最新のバージョンを確認できませんでした: ${e.message}）`, ["ネットワークにつながっているか、github.com への通信を止めていないかを確認する"]);
   }
   if (compareVersion(newest, version) <= 0) return item(name, "info", `v${version}（最新です）`);
   return item(name, "info", `v${version}（GitHub に v${newest} があります）`, [
