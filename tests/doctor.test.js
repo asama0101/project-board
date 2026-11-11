@@ -221,7 +221,7 @@ test("バージョン: GitHub がマーケットプレイスに登録されて�
   let called = false;
   const v = find(await runChecks({ ...base(), readMarketplace: () => ({ x: { source: { source: "directory", path: "D:\\x" } } }), latest: async () => { called = true; } }), "バージョン");
   assert.equal(v.level, "info");
-  assert.match(v.detail, /v2\.0\.0.*登録されていない/);
+  assert.match(v.detail, /v2\.0\.0.*登録していない/);
   assert.equal(called, false);
 });
 
