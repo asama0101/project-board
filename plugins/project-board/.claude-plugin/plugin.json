@@ -1,6 +1,6 @@
 {
   "name": "project-board",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "ネットワーク設備の管理者向けに、複数プロジェクトの進捗と自分のタスクを1つのダッシュボードで管理する。日程の見直しと取り込み（Excel の WBS・予定表）をサブエージェントが手伝う。Windows 専用。",
   "license": "MIT",
   "author": {

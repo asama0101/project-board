@@ -12,7 +12,7 @@ const marketplace = () => json(".claude-plugin/marketplace.json", repoRoot);
 test("plugin.json: 名前とバージョンが package.json と一致する", () => {
   const plugin = json(".claude-plugin/plugin.json");
   assert.equal(plugin.name, "project-board");
-  assert.equal(plugin.version, "1.0.0");
+  assert.equal(plugin.version, "1.0.1");
   assert.equal(plugin.version, json("package.json").version);
   assert.ok(plugin.description);
 });
